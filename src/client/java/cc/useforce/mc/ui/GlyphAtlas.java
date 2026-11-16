@@ -29,14 +29,15 @@ import static org.lwjgl.util.freetype.FreeType.*;
  * Not Minecraft's font system: that loads TTF fonts on several threads at once, and FreeType's TrueType hinting
  * interpreter is not safe for that (a crash in {@code TT_RunIns} when many sizes are defined). Here one FreeType
  * library of our own is used by the render thread only, with light auto-hinting, which never runs that interpreter.
- * JetBrains Mono (regular, bold) first, DejaVu Sans Mono and DejaVu Sans for what it lacks.
+ * JetBrains Mono (regular, bold) first, then Force's icons (a Nerd Fonts symbols subset), DejaVu Sans Mono and
+ * DejaVu Sans for what is left.
  */
 public final class GlyphAtlas {
     private static final int PAGE = 1024;
     // FT_LOAD_TARGET_LIGHT (render mode LIGHT = 1, shifted into the load flags) and the auto-hinter: no bytecode
     private static final int FLAGS = FT_LOAD_RENDER | (1 << 16) | FT_LOAD_FORCE_AUTOHINT;
-    private static final String[] REGULAR = {"jbm-regular.ttf", "dejavu-sans-mono.ttf", "dejavu-sans.ttf"};
-    private static final String[] BOLD = {"jbm-bold.ttf", "dejavu-sans-mono.ttf", "dejavu-sans.ttf"};
+    private static final String[] REGULAR = {"jbm-regular.ttf", "nerd-symbols.ttf", "dejavu-sans-mono.ttf", "dejavu-sans.ttf"};
+    private static final String[] BOLD = {"jbm-bold.ttf", "nerd-symbols.ttf", "dejavu-sans-mono.ttf", "dejavu-sans.ttf"};
 
     /** A glyph's place in a page and how it sits on the pen (x right, baseline). Empty when w == 0. */
     record Glyph(Page page, int u, int v, int w, int h, int left, int top, int advance) {}

@@ -33,7 +33,12 @@ public final class TerminalView {
     }
 
     public void draw(Canvas c, int x, int y, int w, int h, TerminalBuffer.Snapshot s, int px) {
-        c.fill(x, y, w, h, Theme.TERM_BG);
+        draw(c, x, y, w, h, s, px, false);
+    }
+
+    /** `glass`: the area is not filled, and cells on Force's own ground (#262626/#212121) leave the glass showing. */
+    public void draw(Canvas c, int x, int y, int w, int h, TerminalBuffer.Snapshot s, int px, boolean glass) {
+        if (!glass) c.fill(x, y, w, h, Theme.TERM_BG);
         if (s.cols() == 0 || s.rows() == 0) return;
         int cw = cellW(c, px), ch = cellH(px);
         float scale = Math.min(1f, Math.min((float) w / (s.cols() * cw), (float) h / (s.rows() * ch)));
@@ -53,7 +58,8 @@ public final class TerminalView {
                     bg = old & 0xFFFFFF;
                 }
                 if (r.dim()) fg = (fg & 0xFF000000) | ((fg >> 1) & 0x7F7F7F);
-                if (bg != null) c.fill(col * cw, ry, len * cw, ch, 0xFF000000 | bg);
+                if (bg != null && !(glass && (bg == 0x262626 || bg == 0x212121)))
+                    c.fill(col * cw, ry, len * cw, ch, 0xFF000000 | bg);
                 drawRun(c, r.text(), col, ry, cw, px, fg, r.bold());
                 if (r.underline()) c.fill(col * cw, ry + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12),
                         len * cw, Math.max(1, px / 14), fg);
@@ -72,7 +78,16 @@ public final class TerminalView {
         while (i < text.length()) {
             int cp = text.codePointAt(i);
             i += Character.charCount(cp);
-            if (BoxDraw.draw(c, cp, cc * cw, y, cw, cellH(px), px, fg)) {
+            boolean wide = i < text.length() && text.charAt(i) == '\u0000';
+            if (cp == 0) {
+                // the second cell of a wide character: drawn with the first
+                flush(c, plain, start, y, cw, px, fg, bold);
+                start = cc + 1;
+            } else if (wide) {
+                flush(c, plain, start, y, cw, px, fg, bold);
+                GlyphAtlas.get().draw(c, new String(Character.toChars(cp)), cc * cw, y, px, bold, fg, 2 * cw);
+                start = cc + 1;
+            } else if (BoxDraw.draw(c, cp, cc * cw, y, cw, cellH(px), px, fg)) {
                 flush(c, plain, start, y, cw, px, fg, bold);
                 start = cc + 1;
             } else {

@@ -9,7 +9,10 @@ import java.util.List;
  */
 public sealed interface Intent {
     record ToggleHud() implements Intent {}
+    /** The console: the whole Force app (vt mode). */
     record OpenConsole() implements Intent {}
+    /** The session view: the native list + one session's terminal (cells mode), for the native UI to grow from. */
+    record OpenSessions() implements Intent {}
     record CloseConsole() implements Intent {}
     record ToggleConsole() implements Intent {}
     /** Select the next/previous session in the list (wraps). */

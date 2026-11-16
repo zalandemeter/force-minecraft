@@ -4,11 +4,14 @@ Your [Force](https://useforce.cc) sessions (Claude Code, OpenCode, shells) insid
 game screen, a toast when a session needs you or finishes, and a console to answer it without leaving the game.
 
 A client-side Fabric mod. It is a frontend of Force, not a copy: it talks to your installed Force through
-`force api` (Force SPEC §54), so the hosts you added with `force host add`, the states, the order and the unread
-marks are Force's own.
+`force api` (Force SPEC §54). F12 opens **the whole Force app** over the running game: the same program a terminal
+runs (its sidebar, header, Ctrl+Space menu, dialogs, Alt+N, hosts, Chuck), drawn by the mod with crisp text on
+blurred glass instead of terminal blocks. The session list on the game screen and the toasts come from the same
+Force: the hosts you added with `force host add`, the states, the order and the unread marks are Force's own.
 
+![F12: the whole Force app over the game](docs/screenshots/app.png)
+![Force's menu (Ctrl+Space)](docs/screenshots/app-menu.png)
 ![The session list on the game screen](docs/screenshots/game-screen.png)
-![The console: the list and a live session](docs/screenshots/console.png)
 
 (Screenshots from the client game tests, against a demo Force.)
 
@@ -23,14 +26,14 @@ marks are Force's own.
 
 | Key | |
 |---|---|
-| `F12` | open / close the console: the session list and the selected session's terminal. Every other key goes to the session, Esc included |
+| `F12` | open / close Force: the whole app, full screen. Every other key goes to Force, Esc and Ctrl+Space included; Ctrl+Shift+V pastes |
 | `F10` | show / hide the session list on the game screen |
-| (unbound) | jump to the next session that needs you, and open the console |
-| Ctrl+Shift+↑/↓ | in the console: the previous / next session |
+| (unbound) | jump to the next session that needs you, in the session view |
+| (unbound) | the session view: the native list and one session's terminal (Ctrl+Shift+↑/↓ switch) |
 
-In the console a click on the list picks a session, the wheel over the terminal scrolls its history (typing
-returns to the live screen). The game keeps running; a session shown in the console counts as viewed in Force, so it
-is not marked unread meanwhile. All keys can be changed in Options → Controls → Force.
+The mouse works where Force asks for it: its sidebar cards, header and menus are clickable, the wheel scrolls. The
+game keeps running. Open, the app is a client like any terminal (the session it shows counts as viewed); closed, it
+ends, so Force does not take you for looking while you play. All keys can be changed in Options → Controls → Force.
 
 Settings: `config/force_mc.json` (written on the first start):
 
@@ -69,21 +72,25 @@ src/main/java/cc/useforce/mc/core/      plain Java, no Minecraft (unit-tested)
   ApiConnection, Supervisor             `force api` over stdio: requests, events, restart with backoff
   ForceModel                            what Force said: hosts, sessions, attention, notices (Force decides)
   Selection                             which session is picked: the UI's state, never Force's
-  TerminalBackend                       one live view of a session; CellsBackend now (Force renders, SPEC §54
-    TerminalBuffer                        `cells`), a VT-emulator backend later; both fill a TerminalBuffer
+  AppTerminal, Vt, VtInput              the whole app (SPEC §54 vt mode): Force runs its ui in a pty, Vt emulates
+                                        the terminal (what tmux sends), VtInput encodes keys, pastes and the mouse
+  TerminalBackend, CellsBackend         one session's view (cells mode): the native session view
+  TerminalBuffer                        the screen both fill: the only thing the view draws
   Intent, Controller                    what the player wants, from any gesture; carried out in one place
   Keys                                  GLFW keys to tmux key names
 src/client/java/cc/useforce/mc/         Minecraft
   ui/Theme, Panel                       Force's colours and the glass panels
   ui/SessionList, ui/TerminalView       widgets: draw a model / a buffer, answer "what is here"
-  Hud, ConsoleScreen                    layouts: where the widgets go (game screen; console)
+  ui/GlyphAtlas, ui/BoxDraw             the text renderer: FreeType glyphs at exact pixel size, box lines
+  Hud, AppScreen, ConsoleScreen         layouts: the game screen; the whole app; the session view
   ForceClient                           wiring: key bindings, toasts, the layouts, the controller
 src/gametest/                           the real client, headless: a world, the console, typing, switching
 ```
 
 - A new gesture (a click, a key, the wheel) maps to an existing `Intent`; a new behaviour is a new `Intent`.
 - Moving the list (into the HUD, the console, or a side panel) is a layout change; the widgets do not care.
-- A full terminal emulator is a new `TerminalBackend` filling the same `TerminalBuffer` (Force's `vt` mode).
+- The app view and the session view fill the same `TerminalBuffer`, so the renderer is shared.
+- Next: native panels (sidebar, menus, dialogs) on top of the app, with Force publishing its UI logic for frontends.
 
 ## Develop
 
@@ -93,8 +100,9 @@ scripts/gametest.sh             # the client game tests in Docker, against a dem
 ./gradlew runClient             # a dev client; FORCE_MC_COMMAND="/path/to/force api" points it at another Force
 ```
 
-`scripts/gametest.sh` needs Docker and a Force checkout (`FORCE_REPO`, default `../force`); screenshots of each step
-are in `run/clientGameTest/screenshots/`.
+`scripts/gametest.sh` needs Docker and a Force checkout (`FORCE_REPO`, default `../force`): it builds a Force release
+from it, installs that in the container with three shell sessions and its daemon, and runs the client against it.
+Screenshots of each step are in `build/run/clientGameTest/screenshots/`.
 
 ## Text
 
@@ -109,4 +117,4 @@ as lines and blocks that meet across cells, as terminals do.
 ## Licence
 
 MIT. Fonts in `assets/force_mc/fonts/`: JetBrains Mono (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans
-(Bitstream Vera licence).
+(Bitstream Vera licence), and a subset of Nerd Fonts Symbols (MIT) with Force's icons.
