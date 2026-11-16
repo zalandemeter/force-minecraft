@@ -21,8 +21,9 @@ import net.minecraft.network.chat.Component;
 /**
  * The whole Force app, full screen, over the running game (it never pauses): the same program a terminal runs
  * (Force SPEC §54 vt mode), drawn by the mod's renderer on blurred glass. Every key goes to Force, Esc and Ctrl+Space
- * included; the console key closes it; Ctrl+Shift+V pastes; the mouse works where Force asks for it (its sidebar,
- * header and menus are clickable, the wheel scrolls).
+ * the console key and Esc hide it (Ctrl+[ is Esc for Force); Ctrl+Shift+V pastes; the mouse works where Force asks for
+ * it (its sidebar, header and menus are clickable, the wheel scrolls). Hidden, the app keeps running: it comes back at
+ * once, as it was (its host, its session, its menus).
  */
 public final class AppScreen extends Screen {
     private final ForceClient mod;
@@ -47,6 +48,7 @@ public final class AppScreen extends Screen {
     protected void init() {
         // typed characters only arrive while a text input has the focus (SDL from Minecraft 26.3; IME before)
         minecraft.onTextInputFocusChange(this, true);
+        mod.app().setHidden(false);
     }
 
     @Override
@@ -84,11 +86,12 @@ public final class AppScreen extends Screen {
     // --- keys -----------------------------------------------------------------------------------------------
     @Override
     public boolean keyPressed(KeyEvent e) {
-        if (mod.isConsoleKey(e)) {
+        int mods = e.modifiers();
+        if (mod.isConsoleKey(e) || (e.key() == InputConstants.KEY_ESCAPE && !keys.ctrl(mods) && !keys.alt(mods)
+                && !keys.shift(mods))) {
             mod.controller().handle(new cc.useforce.mc.core.Intent.CloseConsole());
             return true;
         }
-        int mods = e.modifiers();
         Vt vt = mod.app().vt();
         if (keys.ctrl(mods) && keys.shift(mods) && e.key() == InputConstants.KEY_V) {
             String clip = minecraft.keyboardHandler.getClipboard();

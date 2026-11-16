@@ -25,18 +25,31 @@ final class Hud {
         if (!mod.hudVisible() || mod.consoleOpen()) return;
         Canvas c = new Canvas(g, mc.font, mc.getWindow().getGuiScale());
         int px = mod.config().hudPx(c.scale);
-        ForceModel.State s = mod.model().state();
-        int rows = Math.min(s.live().size(), mod.config().hudRows);
-        int w = px * 17, head = Theme.line(px) + px;
-        int h = head + Math.max(1, rows) * SessionList.rowHeight(px, true) + px / 3;
+        ForceModel.State all = mod.model().state();
+        ForceModel.State s = active(all, mod.config().hudRows);
+        int line = Theme.line(px), row = SessionList.rowHeight(px, true);
+        long hosts = s.sessions().stream().map(ForceModel.Session::host).distinct().count();
+        int w = px * 17, head = line + px;
+        int h = head + (s.sessions().isEmpty() ? line : s.sessions().size() * row + (int) hosts * (line + px / 4))
+                + px / 3;
         c.begin();
         int x = c.width() - w - px / 2, y = c.height() / 2 - h / 2;
         Panel.draw(c, x, y, w, h);
-        header(c, mod.model(), s, x, y, w, px);
-        if (rows == 0) c.text(empty(mod.model()), x + px / 2, y + head, px, Theme.DIM, false);
-        else list.draw(c, x + 1, y + head, w - 2, h - head, trimmed(s, rows), mod.selection().address(), true, false,
-                px);
+        header(c, mod.model(), all, x, y, w, px);
+        if (s.sessions().isEmpty())
+            c.text(mod.model().status() == ForceModel.Status.CONNECTED ? "all quiet" : empty(mod.model()),
+                    x + px / 2, y + head, px, Theme.DIM, false);
+        else list.draw(c, x + 1, y + head, w - 2, h - head, s, mod.selection().address(), true, true, px);
         c.end();
+    }
+
+    /** The sessions worth a look on the game screen: those with a colour (needs you, working, your turn, unread), not
+     * the grey ones (idle, waiting, stale, down), at most `max`, host by host as Force lists them. */
+    static ForceModel.State active(ForceModel.State s, int max) {
+        List<ForceModel.Session> out = new java.util.ArrayList<>();
+        for (ForceModel.Session x : s.live())
+            if (Theme.color(x) != Theme.DIM && out.size() < max) out.add(x);
+        return new ForceModel.State(s.hosts(), out, s.needsYou(), s.unread(), s.update());
     }
 
     /** "⚡ Force" and who needs you, on one line at the top of a panel. */
@@ -65,8 +78,4 @@ final class Hud {
         };
     }
 
-    private static ForceModel.State trimmed(ForceModel.State s, int rows) {
-        List<ForceModel.Session> live = s.live().subList(0, rows);
-        return new ForceModel.State(s.hosts(), live, s.needsYou(), s.unread(), s.update());
-    }
 }

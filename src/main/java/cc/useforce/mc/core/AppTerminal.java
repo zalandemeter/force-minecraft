@@ -21,6 +21,7 @@ public final class AppTerminal {
     private ApiConnection openedOn;
     private boolean opening;
     private final List<JsonObject> early = new ArrayList<>();
+    private volatile boolean hidden;
     private volatile TerminalBuffer.Snapshot cached;
     private volatile long cachedVersion = -1;
 
@@ -99,12 +100,32 @@ public final class AppTerminal {
                 replay = new ArrayList<>(early);
                 early.clear();
             }
+            if (hidden) sendHidden(true);
             for (JsonObject e : replay)
                 if (e.get("term").getAsInt() == term) apply(ApiConnection.str(e, "event", ""), e);
         });
     }
 
     public boolean open() { return term != null || opening; }
+
+    /** Hidden: the app keeps running (shown again at once, as it was); Force does not count it as viewing. */
+    public void setHidden(boolean h) {
+        if (h == hidden) return;
+        hidden = h;
+        sendHidden(h);
+    }
+
+    public boolean hidden() { return hidden; }
+
+    private void sendHidden(boolean h) {
+        ApiConnection c = conn.get();
+        Integer t = term;
+        if (c == null || t == null) return;
+        JsonObject req = new JsonObject();
+        req.addProperty("term", t);
+        req.addProperty("hidden", h);
+        c.request("terminal.hidden", req);
+    }
 
     public synchronized void resize(int cols, int rows) {
         if (cols == this.cols && rows == this.rows) return;

@@ -305,19 +305,11 @@ public final class Vt {
         }
     }
 
-    /** Terminal width of a code point: 0 (combining), 1, or 2 (East Asian wide, most emoji). */
+    /** Terminal width of a code point, as tmux (glibc's wcwidth) counts it: 0 (combining), 1, or 2 (wide). */
     static int width(int cp) {
-        if (cp == 0 || (cp >= 0x0300 && cp <= 0x036F) || (cp >= 0x200B && cp <= 0x200F) || cp == 0x2060
-                || (cp >= 0xFE00 && cp <= 0xFE0F) || (cp >= 0x1AB0 && cp <= 0x1AFF) || (cp >= 0x20D0 && cp <= 0x20FF)
-                || (cp >= 0xE0100 && cp <= 0xE01EF)) return 0;
-        if ((cp >= 0x1100 && cp <= 0x115F) || (cp >= 0x2E80 && cp <= 0x303E) || (cp >= 0x3041 && cp <= 0x33FF)
-                || (cp >= 0x3400 && cp <= 0x4DBF) || (cp >= 0x4E00 && cp <= 0x9FFF) || (cp >= 0xA000 && cp <= 0xA4CF)
-                || (cp >= 0xAC00 && cp <= 0xD7A3) || (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0xFE30 && cp <= 0xFE4F)
-                || (cp >= 0xFF00 && cp <= 0xFF60) || (cp >= 0xFFE0 && cp <= 0xFFE6)
-                || (cp >= 0x1F300 && cp <= 0x1F64F) || (cp >= 0x1F900 && cp <= 0x1F9FF)
-                || (cp >= 0x1F680 && cp <= 0x1F6FF) || (cp >= 0x1FA70 && cp <= 0x1FAFF)
-                || (cp >= 0x20000 && cp <= 0x3FFFD)) return 2;
-        return 1;
+        if (cp < 0x300) return 1;
+        if (Widths.in(Widths.ZERO, cp)) return 0;
+        return Widths.in(Widths.WIDE, cp) ? 2 : 1;
     }
 
     private void shiftRight(int y, int x, int n) {

@@ -67,6 +67,9 @@ profile += ["esac", "PS1='$ '"]
 
 for name in BANNERS:
     subprocess.run([force, "new", name, "--kind", "shell", "--no-switch"], check=True, stdout=subprocess.DEVNULL)
+# something running in web, so the game-screen list (only sessions with a colour) has a working one
+time.sleep(1)
+subprocess.run(["tmux", "-L", "force", "send-keys", "-t", "=web:", "sleep 3600", "Enter"], check=True)
 # the daemon (no systemd here: Force starts its own, as `force` would)
 app = str(home / ".local/share/force/app")
 subprocess.run([sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {app!r}); from force import cli; "

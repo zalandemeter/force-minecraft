@@ -104,12 +104,13 @@ public final class ConsoleScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent e) {
-        if (mod.isConsoleKey(e)) {
+        int mods = e.modifiers();
+        if (mod.isConsoleKey(e) || (e.key() == InputConstants.KEY_ESCAPE && !keys.ctrl(mods) && !keys.alt(mods)
+                && !keys.shift(mods))) {
             flushTyped();
             mod.controller().handle(new Intent.CloseConsole());
             return true;
         }
-        int mods = e.modifiers();
         boolean up = e.key() == InputConstants.KEY_UP, down = e.key() == InputConstants.KEY_DOWN;
         if (keys.ctrl(mods) && keys.shift(mods) && (up || down)) {
             flushTyped();

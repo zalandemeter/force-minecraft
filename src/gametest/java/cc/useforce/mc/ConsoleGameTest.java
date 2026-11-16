@@ -35,7 +35,14 @@ public class ConsoleGameTest implements FabricClientGameTest {
     private static void sessionView(ClientGameTestContext ctx, ForceClient mod) {
         ctx.runOnClient(mc -> mod.controller().handle(new Intent.OpenSessions()));
         ctx.waitForScreen(ConsoleScreen.class);
-        ctx.waitFor(mc -> text(mod.terminal().buffer().snapshot()).contains("demo"), 20 * 15);
+        try {
+            ctx.waitFor(mc -> text(mod.terminal().buffer().snapshot()).contains("retry"), 20 * 15);
+        } catch (AssertionError e) {
+            ctx.takeScreenshot("x-session-view");
+            System.err.println("SESSION VIEW " + mod.terminal().address() + " problem=" + mod.terminal().problem()
+                    + ":\n" + text(mod.terminal().buffer().snapshot()));
+            throw e;
+        }
         ctx.waitFor(mc -> mod.terminal().buffer().snapshot().cols() != 200, 20 * 10);   // it took the view's size
         ctx.getInput().typeChars("echo hello from minecraft");
         ctx.getInput().pressKey(InputConstants.KEY_RETURN);
@@ -53,6 +60,8 @@ public class ConsoleGameTest implements FabricClientGameTest {
 
     /** F12: the whole Force app, the same program a terminal runs. */
     private static void app(ClientGameTestContext ctx, ForceClient mod) {
+        // the app started hidden as soon as Force was connected: the first F12 shows it at once
+        ctx.waitFor(mc -> mod.app().open(), 20 * 10);
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitForScreen(AppScreen.class);
         // Force's own ui: its sidebar lists the sessions, its main pane shows one of them
@@ -81,14 +90,26 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.waitFor(mc -> text(mod.app().snapshot()).contains("Jump to session"), 20 * 10);
         ctx.waitTicks(10);
         ctx.takeScreenshot("4-app-menu");
-        ctx.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        // Esc hides the view; Ctrl+[ is Esc for Force (closes its menu)
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
+                new KeyEvent(InputConstants.KEY_LBRACKET, 0, InputConstants.MOD_CONTROL)));
         ctx.waitFor(mc -> !text(mod.app().snapshot()).contains("Jump to session"), 20 * 10);
+        if (!(ctx.computeOnClient(mc -> mc.gui.screen()) instanceof AppScreen)) throw new AssertionError("still shown");
 
         // Alt+3: the third session, as in any terminal
         ctx.runOnClient(mc -> mc.gui.screen().keyPressed(new KeyEvent(InputConstants.KEY_3, 0, InputConstants.MOD_ALT)));
         waitApp(ctx, mod, "alt-3", t -> t.contains("finished: 3 files changed"));
         ctx.waitTicks(10);
         ctx.takeScreenshot("5-app-switched");
+
+        // Esc hides it, F12 shows it again: the same app, as it was (still on docs), not a fresh one
+        ctx.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        if (!mod.app().open() || !mod.app().hidden()) throw new AssertionError("hidden, the app keeps running");
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitForScreen(AppScreen.class);
+        waitApp(ctx, mod, "shown-again", t -> t.contains("finished: 3 files changed"));
+        if (mod.app().hidden()) throw new AssertionError("shown again");
 
         // a laptop's high-DPI panel: larger text, the app follows the size
         ctx.getInput().resizeWindow(2880, 1800);
@@ -99,7 +120,8 @@ public class ConsoleGameTest implements FabricClientGameTest {
 
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
-        ctx.waitFor(mc -> !mod.app().open(), 20 * 5);
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("7-game-screen-active-only");
     }
 
     private static void waitApp(ClientGameTestContext ctx, ForceClient mod, String name,

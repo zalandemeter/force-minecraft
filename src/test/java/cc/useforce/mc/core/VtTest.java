@@ -97,6 +97,19 @@ class VtTest {
     }
 
     @Test
+    void widthsAreTmuxs() {
+        assertEquals(2, Vt.width(0x26A1), "⚡ is wide (emoji): tmux puts two cells there");
+        assertEquals(2, Vt.width(0x2728), "✨");
+        assertEquals(2, Vt.width(0x1F600));
+        assertEquals(2, Vt.width(0x4E00));
+        assertEquals(1, Vt.width(0xF0E7), "a Nerd Fonts icon (private use): one cell");
+        assertEquals(1, Vt.width(0x23FA));
+        assertEquals(1, Vt.width(0x2500));
+        assertEquals(0, Vt.width(0x0301));
+        assertEquals(0, Vt.width(0x200D));
+    }
+
+    @Test
     void alternateScreenKeepsTheMainOne() {
         Vt vt = vt(4, 2);
         feed(vt, "main");

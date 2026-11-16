@@ -26,14 +26,16 @@ Force: the hosts you added with `force host add`, the states, the order and the 
 
 | Key | |
 |---|---|
-| `F12` | open / close Force: the whole app, full screen. Every other key goes to Force, Esc and Ctrl+Space included; Ctrl+Shift+V pastes |
-| `F10` | show / hide the session list on the game screen |
+| `F12` | show / hide Force: the whole app, full screen. Every other key goes to Force, Ctrl+Space included; Ctrl+Shift+V pastes |
+| `Esc` | hides it too (Ctrl+[ is Esc for Force: it closes Force's menus and interrupts an agent) |
+| `F10` | show / hide the session list on the game screen: only the sessions with something going on (needs you, working, your turn, unread), host by host |
 | (unbound) | jump to the next session that needs you, in the session view |
 | (unbound) | the session view: the native list and one session's terminal (Ctrl+Shift+↑/↓ switch) |
 
 The mouse works where Force asks for it: its sidebar cards, header and menus are clickable, the wheel scrolls. The
-game keeps running. Open, the app is a client like any terminal (the session it shows counts as viewed); closed, it
-ends, so Force does not take you for looking while you play. All keys can be changed in Options → Controls → Force.
+game keeps running. The app starts hidden as soon as Force is connected and stays running: showing it is instant, and
+it is as you left it (its host, its session). Hidden, Force does not count the session it shows as viewed, so you
+still get its toasts while you play. All keys can be changed in Options → Controls → Force.
 
 Settings: `config/force_mc.json` (written on the first start):
 

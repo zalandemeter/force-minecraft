@@ -81,6 +81,7 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         boolean active = mc.isWindowActive();
         if (console instanceof ConsoleScreen && active != wasActive) terminal.setHidden(!active);
         wasActive = active;
+        preloadApp(mc);
         ForceModel.Notice n;
         while ((n = model.pollNotice()) != null) {
             if (!config.toasts || (consoleOpen() && n.address().equals(terminal.address()))) continue;
@@ -92,6 +93,19 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
             SystemToast.addOrUpdate(mc.gui.toastManager(), TOAST, Component.literal("⚡ " + title),
                     Component.literal(n.message()));
         }
+    }
+
+    /** The app starts hidden as soon as Force is connected, so the first F12 shows it at once. */
+    private void preloadApp(Minecraft mc) {
+        if (app.open() || model.status() != ForceModel.Status.CONNECTED || app.problem() != null) return;
+        int gs = mc.getWindow().getGuiScale();
+        int px = config.terminalPx(gs);
+        cc.useforce.mc.ui.GlyphAtlas.Metrics m = cc.useforce.mc.ui.GlyphAtlas.get().metrics(px);
+        int margin = Math.max(px / 2, 6);
+        int cols = Math.max(20, Math.min(500, (mc.getWindow().getWidth() - 2 * margin) / m.cellW()));
+        int rows = Math.max(5, Math.min(200, (mc.getWindow().getHeight() - 2 * margin) / m.cellH()));
+        app.setHidden(true);
+        app.open(cols, rows);
     }
 
     // --- Controller.Ui
@@ -127,7 +141,7 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     /** The console went away (closed, or replaced by another screen): the app ends, a session view hides, so
      * Force does not count the sessions as viewed while you play. */
     void consoleRemoved() {
-        if (console instanceof AppScreen) app.close();
+        if (console instanceof AppScreen) app.setHidden(true);      // keeps running: back at once, as it was
         else terminal.setHidden(true);
         console = null;
     }
