@@ -182,6 +182,7 @@ class CoreTest {
         while (model.state().live().isEmpty() && System.currentTimeMillis() < end) Thread.sleep(20);
         assertEquals(3, model.state().live().size());
         term.show("laptop:web");
+        end = System.currentTimeMillis() + 10_000;
         while ((term.buffer().snapshot().lines().isEmpty() || term.buffer().snapshot().lines().get(0).isEmpty())
                 && System.currentTimeMillis() < end) Thread.sleep(20);
         assertEquals("hi", term.buffer().snapshot().lines().get(0).get(0).text());

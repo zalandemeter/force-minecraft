@@ -19,6 +19,8 @@ public final class CellsBackend implements TerminalBackend {
     private volatile boolean hidden;
     private ApiConnection openedOn;
     private volatile int wantCols, wantRows;
+    private final List<JsonObject> early = new java.util.ArrayList<>();
+    private boolean opening;
 
     public CellsBackend(Supplier<ApiConnection> conn) {
         this.conn = conn;
@@ -28,8 +30,32 @@ public final class CellsBackend implements TerminalBackend {
     public boolean accept(JsonObject e) {
         String kind = ApiConnection.str(e, "event", "");
         if (!kind.startsWith("terminal.")) return false;
-        Integer t = term;
-        if (t == null || !e.has("term") || e.get("term").getAsInt() != t) return true;
+        synchronized (early) {
+            Integer t = term;
+            if (t == null && opening && e.has("term")) {
+                early.add(e);           // the view's first frames can come before its id is known: keep them
+                return true;
+            }
+            if (t == null || !e.has("term") || e.get("term").getAsInt() != t) return true;
+        }
+        apply(kind, e);
+        return true;
+    }
+
+    /** The open request's reply: the view's id, and the frames that came before it. */
+    private void opened(int t) {
+        List<JsonObject> replay;
+        synchronized (early) {
+            term = t;
+            opening = false;
+            replay = new java.util.ArrayList<>(early);
+            early.clear();
+        }
+        for (JsonObject e : replay)
+            if (e.get("term").getAsInt() == t) apply(ApiConnection.str(e, "event", ""), e);
+    }
+
+    private void apply(String kind, JsonObject e) {
         if (kind.equals("terminal.screen")) {
             buffer.applyScreen(e);
             problem = null;
@@ -37,7 +63,6 @@ public final class CellsBackend implements TerminalBackend {
             term = null;
             problem = address + ": " + ApiConnection.str(e, "reason", "closed");
         }
-        return true;
     }
 
     @Override
@@ -57,10 +82,19 @@ public final class CellsBackend implements TerminalBackend {
         if (term == null) {
             req.addProperty("mode", "cells");
             openedOn = c;
+            synchronized (early) {
+                opening = true;
+                early.clear();
+            }
             c.request("terminal.open", req).whenComplete((ok, err) -> {
-                if (err != null) problem = message(err);
-                else {
-                    term = ok.get("term").getAsInt();
+                if (err != null) {
+                    problem = message(err);
+                    synchronized (early) {
+                        opening = false;
+                        early.clear();
+                    }
+                } else {
+                    opened(ok.get("term").getAsInt());
                     if (wantCols > 0) sendResize();
                     if (hidden) sendHidden(true);
                 }
