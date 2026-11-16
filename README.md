@@ -40,7 +40,8 @@ Settings: `config/force_mc.json` (written on the first start):
 | `hud` | `true` | the session list on the game screen |
 | `toasts`, `sound` | `true` | a toast when a session needs you, finishes or stops |
 | `hudRows` | `8` | the most sessions the game-screen list shows |
-| `terminalFontPx`, `uiFontPx`, `hudFontPx` | `16`, `16`, `15` | text sizes in screen pixels (12–24): the console's terminal, its list, the game-screen list |
+| `terminalFontPx`, `uiFontPx`, `hudFontPx` | `0` | text sizes in screen pixels (12–48) for the console's terminal, its list, the game-screen list; `0` follows Minecraft's GUI scale (so a high-DPI display gets larger text) |
+| `textScale` | `1.0` | multiplies the sizes that follow the GUI scale |
 
 ## Versions
 

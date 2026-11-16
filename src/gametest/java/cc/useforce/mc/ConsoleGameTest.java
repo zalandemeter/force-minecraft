@@ -55,6 +55,14 @@ public class ConsoleGameTest implements FabricClientGameTest {
             ctx.waitFor(mc -> text(mod).contains("4 passed"), 20 * 10);
             ctx.waitTicks(20);
             ctx.takeScreenshot("5-agent");
+            // a high-DPI laptop panel: Minecraft picks a larger GUI scale, and the text follows it
+            ctx.getInput().resizeWindow(2880, 1800);
+            ctx.waitTicks(40);
+            ctx.waitFor(mc -> text(mod).contains("4 passed"), 20 * 10);
+            ctx.waitTicks(20);
+            ctx.takeScreenshot("6-agent-hidpi");
+            ctx.getInput().resizeWindow(1600, 900);
+            ctx.waitTicks(20);
 
             ctx.getInput().pressKey(InputConstants.KEY_F12);
             ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);

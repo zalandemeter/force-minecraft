@@ -21,10 +21,24 @@ public final class Config {
     public boolean sound = true;
     /** The most sessions the game-screen list shows. */
     public int hudRows = 8;
-    /** Text sizes in screen pixels (12–24): the console's terminal, the console's list, the game-screen list. */
-    public int terminalFontPx = 16;
-    public int uiFontPx = 16;
-    public int hudFontPx = 15;
+    /** Text sizes in screen pixels (12–48) for the console's terminal, its list and the game-screen list; 0 = follow
+     * Minecraft's GUI scale (which follows the display: a high-DPI screen gets larger text), times `textScale`. */
+    public int terminalFontPx = 0;
+    public int uiFontPx = 0;
+    public int hudFontPx = 0;
+    public double textScale = 1.0;
+
+    /** Screen pixels per GUI unit × these: at GUI scale 3, 16 / 15 / 14 pixels. */
+    private static final double TERMINAL = 5.4, UI = 5.0, HUD = 4.7;
+
+    public int terminalPx(int guiScale) { return px(terminalFontPx, TERMINAL, guiScale); }
+    public int uiPx(int guiScale) { return px(uiFontPx, UI, guiScale); }
+    public int hudPx(int guiScale) { return px(hudFontPx, HUD, guiScale); }
+
+    private int px(int fixed, double perUnit, int guiScale) {
+        int v = fixed > 0 ? fixed : (int) Math.round(perUnit * Math.max(1, guiScale) * (textScale > 0 ? textScale : 1));
+        return cc.useforce.mc.ui.Theme.size(Math.max(12, Math.min(48, v)));   // a size there is a font for
+    }
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 

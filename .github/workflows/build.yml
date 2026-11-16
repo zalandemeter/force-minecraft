@@ -56,7 +56,7 @@ jobs:
           python3 scripts/demo_force.py /tmp/force-demo > /tmp/demo.log 2>&1 &
           for i in $(seq 50); do grep -q FORCE_MC_COMMAND /tmp/demo.log && break; sleep 0.2; done
           export FORCE_MC_COMMAND="$(sed -n 's/^FORCE_MC_COMMAND=//p' /tmp/demo.log)"
-          xvfb-run -a -s "-screen 0 1600x900x24" ./gradlew runClientGameTest --no-daemon --console=plain
+          xvfb-run -a -s "-screen 0 2880x1800x24" ./gradlew runClientGameTest --no-daemon --console=plain
       - name: screenshots
         if: always()
         uses: actions/upload-artifact@v7

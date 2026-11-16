@@ -13,7 +13,7 @@ exec docker run --rm --init --user "$(id -u):$(id -g)" \
   -e HOME=/tmp/home -e GRADLE_USER_HOME=/gradle -e FORCE_REPO=/force -e LIBGL_ALWAYS_SOFTWARE=1 \
   -v "$here:/work" -v "$force_repo:/force:ro" -v "$gradle_home:/gradle" -w /work "$image" sh -c '
     mkdir -p /tmp/home
-    Xvfb :99 -screen 0 1600x900x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &
+    Xvfb :99 -screen 0 2880x1800x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &
     export DISPLAY=:99
     python3 scripts/demo_force.py /tmp/force-demo >/tmp/demo.log 2>&1 &
     for i in $(seq 50); do grep -q FORCE_MC_COMMAND /tmp/demo.log 2>/dev/null && break; sleep 0.2; done

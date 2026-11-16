@@ -8,7 +8,7 @@ import net.minecraft.resources.Identifier;
 
 /** Force's own colours (its terminal theme) and the glass panels, in one place: a restyle is an edit here. */
 public final class Theme {
-    public static final int PANEL = 0xB8141414;           // the glass: Force's ground, see-through
+    public static final int PANEL = 0xDC141414;           // the glass: Force's ground, a little see-through
     public static final int PANEL_EDGE = 0x33FFFFFF;
     public static final int RAISED = 0xCC2C2C2C;          // the selected card
     public static final int TEXT = 0xFFF2F2F2;
@@ -23,7 +23,7 @@ public final class Theme {
     public static final int TERM_FG = 0xFFD0D0D0;
 
     /** The pixel sizes there is a font for (scripts/fonts.py): each rasterised at exactly that size. */
-    public static final int[] SIZES = {12, 13, 14, 15, 16, 17, 18, 20, 22, 24};
+    public static final int[] SIZES = {12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26, 28, 32, 36, 40, 44, 48};
     private static final FontDescription[] REGULAR = new FontDescription[SIZES.length];
     private static final FontDescription[] BOLD = new FontDescription[SIZES.length];
 
@@ -57,14 +57,16 @@ public final class Theme {
         return Component.literal(text).withStyle(style.withFont(font(px, bold)));
     }
 
-    /** How far below a line box's top Minecraft's text origin goes for a `px` font (its ascent sits on it). */
+    /** Where Minecraft's text origin goes, below a line box's top, so a `px` font's ink is centred in the box.
+     * Minecraft puts a TTF glyph's baseline 7 units below the origin at any size (measured: screenshots at 16 and
+     * 36 px); JetBrains Mono's ink runs from 0.78 em above the baseline to 0.22 em below, centred 0.28 em up. */
     public static int baseline(int px) {
-        return Math.round(px * 0.12f);
+        return Math.round(line(px) / 2f + 0.28f * size(px)) - 7;
     }
 
     /** A line box for `px` text: JetBrains Mono's comfortable 1.3. */
     public static int line(int px) {
-        return Math.round(px * 1.3f);
+        return Math.round(size(px) * 1.3f);
     }
 
     /** The state's colour (as the sidebar: unread wins over working, waiting is grey). */

@@ -5,7 +5,7 @@ Mono and DejaVu Sans for what it lacks (box drawing, braille, symbols). Run afte
 import json
 from pathlib import Path
 
-SIZES = [12, 13, 14, 15, 16, 17, 18, 20, 22, 24]
+SIZES = [12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26, 28, 32, 36, 40, 44, 48]
 out = Path(__file__).resolve().parent.parent / "src/client/resources/assets/force_mc/font"
 for f in out.glob("px_*.json"):
     f.unlink()

@@ -47,8 +47,8 @@ public final class ConsoleScreen extends Screen {
     private int px, tpx;            // the list's and the terminal's text sizes (screen pixels)
 
     private void layout(Canvas c) {
-        px = mod.config().uiFontPx;
-        tpx = mod.config().terminalFontPx;
+        px = mod.config().uiPx(c.scale);
+        tpx = mod.config().terminalPx(c.scale);
         int m = px;
         lw = Math.max(px * 14, Math.min(px * 22, c.width() / 5));
         lx = m;
@@ -62,7 +62,8 @@ public final class ConsoleScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        g.fill(0, 0, width, height, 0x66000000);            // the game stays visible behind the glass
+        extractBlurredBackground(g);                        // the game, blurred behind the glass: text stays legible
+        g.fill(0, 0, width, height, 0x55000000);
     }
 
     @Override

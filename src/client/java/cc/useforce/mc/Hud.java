@@ -24,7 +24,7 @@ final class Hud {
         Minecraft mc = Minecraft.getInstance();
         if (!mod.hudVisible() || mod.consoleOpen()) return;
         Canvas c = new Canvas(g, mc.font, mc.getWindow().getGuiScale());
-        int px = mod.config().hudFontPx;
+        int px = mod.config().hudPx(c.scale);
         ForceModel.State s = mod.model().state();
         int rows = Math.min(s.live().size(), mod.config().hudRows);
         int w = px * 17, head = Theme.line(px) + px;
