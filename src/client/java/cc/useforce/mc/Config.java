@@ -21,6 +21,8 @@ public final class Config {
     public boolean sound = true;
     /** The most sessions the game-screen list shows. */
     public int hudRows = 8;
+    /** The terminal's text size: screen pixels per font unit (a cell is 5 × 9 units: 2 = 10 × 18 pixels). */
+    public double terminalScale = 2.0;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 

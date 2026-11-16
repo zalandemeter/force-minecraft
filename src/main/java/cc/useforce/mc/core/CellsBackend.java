@@ -18,6 +18,7 @@ public final class CellsBackend implements TerminalBackend {
     private volatile String problem;
     private volatile boolean hidden;
     private ApiConnection openedOn;
+    private volatile int wantCols, wantRows;
 
     public CellsBackend(Supplier<ApiConnection> conn) {
         this.conn = conn;
@@ -60,6 +61,7 @@ public final class CellsBackend implements TerminalBackend {
                 if (err != null) problem = message(err);
                 else {
                     term = ok.get("term").getAsInt();
+                    if (wantCols > 0) sendResize();
                     if (hidden) sendHidden(true);
                 }
             });
@@ -102,6 +104,25 @@ public final class CellsBackend implements TerminalBackend {
         req.addProperty("term", t);
         req.addProperty("lines", lines);
         c.request("terminal.scroll", req);
+    }
+
+    @Override
+    public void resize(int cols, int rows) {
+        if (cols == wantCols && rows == wantRows) return;
+        wantCols = cols;
+        wantRows = rows;
+        sendResize();
+    }
+
+    private void sendResize() {
+        ApiConnection c = conn.get();
+        Integer t = term;
+        if (c == null || t == null || wantCols <= 0) return;
+        JsonObject req = new JsonObject();
+        req.addProperty("term", t);
+        req.addProperty("cols", wantCols);
+        req.addProperty("rows", wantRows);
+        c.request("terminal.resize", req);         // an older Force answers {"fixed": true}: the view then scales
     }
 
     @Override

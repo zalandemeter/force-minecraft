@@ -16,6 +16,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 public class ConsoleGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
+        ctx.getInput().resizeWindow(1600, 900);          // a laptop-sized window: the text size is part of the test
         try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
             world.getConnection().waitForChunksRender();
             ForceClient mod = ForceClient.instance();
@@ -27,6 +28,8 @@ public class ConsoleGameTest implements FabricClientGameTest {
             ctx.getInput().pressKey(InputConstants.KEY_F12);
             ctx.waitForScreen(ConsoleScreen.class);
             ctx.waitFor(mc -> text(mod).contains("demo session"), 20 * 15);
+            // the console asks Force for a terminal its own size: the pane follows (the demo panes are 100x30)
+            ctx.waitFor(mc -> mod.terminal().buffer().snapshot().cols() != 100, 20 * 10);
             ctx.waitTicks(5);
             ctx.takeScreenshot("2-console");
 

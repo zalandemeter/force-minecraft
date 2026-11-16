@@ -19,6 +19,9 @@ public interface TerminalBackend {
     /** Into the history (negative) or back (positive); 0 = live. */
     void scroll(int lines);
 
+    /** The view's own size in cells, as a terminal's (the session follows it while shown). */
+    void resize(int cols, int rows);
+
     /** Not drawn (console closed, window unfocused): Force stops sending and the session is not "viewed". */
     void setHidden(boolean hidden);
 

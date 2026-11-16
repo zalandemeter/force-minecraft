@@ -82,7 +82,13 @@ public final class ConsoleScreen extends Screen {
         TerminalBackend term = mod.terminal();
         String problem = term.problem();
         if (problem != null) g.text(font, Theme.mono(problem), tx + 6, ty + 16, Theme.RED, false);
-        else view.draw(g, font, tx + 2, ty + 15, tw - 4, th - 17, term.buffer().snapshot());
+        else {
+            int gs = minecraft.getWindow().getGuiScale();
+            double unit = mod.config().terminalScale;
+            TerminalView.Grid grid = TerminalView.fit(tw - 4, th - 17, unit, gs);
+            term.resize(grid.cols(), grid.rows());          // only sent when it changed
+            view.draw(g, font, tx + 2, ty + 15, tw - 4, th - 17, term.buffer().snapshot(), unit, gs);
+        }
     }
 
     private String keyHint() {
