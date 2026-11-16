@@ -28,7 +28,7 @@ public final class Config {
     public int hudFontPx = 0;
     public double textScale = 1.0;
 
-    /** Screen pixels per GUI unit × these: at GUI scale 3, 20 / 18 / 17 pixels (the owner found the first sizes a bit small). */
+    /** Screen pixels per GUI unit × these: at GUI scale 3, 20 / 18 / 17 pixels. */
     private static final double TERMINAL = 6.8, UI = 6.2, HUD = 5.8;
 
     public int terminalPx(int guiScale) { return px(terminalFontPx, TERMINAL, guiScale); }
