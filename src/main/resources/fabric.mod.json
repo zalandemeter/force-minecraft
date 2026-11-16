@@ -1,0 +1,24 @@
+{
+	"schemaVersion": 1,
+	"id": "force_mc",
+	"version": "${version}",
+	"name": "Force",
+	"description": "Your Force sessions (Claude Code, OpenCode, shells) inside Minecraft: who needs you, toasts, and a terminal to answer them.",
+	"authors": ["Force contributors"],
+	"contact": {
+		"homepage": "https://useforce.cc",
+		"sources": "https://github.com/zalandemeter/force-minecraft",
+		"issues": "https://github.com/zalandemeter/force-minecraft/issues"
+	},
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": ["cc.useforce.mc.ForceClient"]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

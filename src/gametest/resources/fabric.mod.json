@@ -1,0 +1,11 @@
+{
+	"schemaVersion": 1,
+	"id": "force_mc_gametest",
+	"version": "1.0.0",
+	"name": "Force game tests",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": ["cc.useforce.mc.ConsoleGameTest"]
+	},
+	"depends": {"force_mc": "*"}
+}
