@@ -1,13 +1,11 @@
 package cc.useforce.mc.ui;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-
-/** A glass panel: Force's ground, see-through, with a hairline edge. */
+/** A glass panel: Force's ground, see-through, with a hairline edge (screen pixels). */
 public final class Panel {
     private Panel() {}
 
-    public static void draw(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        g.fill(x, y, x + w, y + h, Theme.PANEL);
-        g.outline(x, y, w, h, Theme.PANEL_EDGE);
+    public static void draw(Canvas c, int x, int y, int w, int h) {
+        c.fill(x, y, w, h, Theme.PANEL);
+        c.outline(x, y, w, h, Theme.PANEL_EDGE);
     }
 }

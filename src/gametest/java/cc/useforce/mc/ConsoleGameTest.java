@@ -1,62 +1,141 @@
 package cc.useforce.mc;
 
 import cc.useforce.mc.core.ForceModel;
+import cc.useforce.mc.core.Intent;
 import cc.useforce.mc.core.TerminalBuffer;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.input.KeyEvent;
-import com.mojang.blaze3d.platform.InputConstants;
 
 /**
- * The real client against a demo Force (scripts/demo_force.py, started by scripts/gametest.sh): the list on the
- * game screen, the console, typing into a session, switching, closing. Screenshots of each step land in
- * run/clientGameTest/screenshots (the README and the PR show them).
+ * The real client against a real Force (scripts/demo_force.py: a Force release, three shell sessions, its daemon):
+ * the game-screen list, the session view, and the whole Force app on F12 (its own UI, typing, its menu, switching).
+ * Screenshots of each step land in build/run/clientGameTest/screenshots (the README shows some).
  */
 public class ConsoleGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
-        ctx.getInput().resizeWindow(1600, 900);          // a laptop-sized window: the text size is part of the test
+        ctx.getInput().resizeWindow(1600, 900);
         try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
             world.getConnection().waitForChunksRender();
             ForceClient mod = ForceClient.instance();
             ctx.waitFor(mc -> mod.model().status() == ForceModel.Status.CONNECTED
-                    && mod.model().state().live().size() >= 3, 20 * 30);
+                    && mod.model().state().live().size() >= 3, 20 * 60);
             ctx.waitTicks(10);
             ctx.takeScreenshot("1-game-screen-list");
 
-            ctx.getInput().pressKey(InputConstants.KEY_F12);
-            ctx.waitForScreen(ConsoleScreen.class);
-            ctx.waitFor(mc -> text(mod).contains("demo session"), 20 * 15);
-            // the console asks Force for a terminal its own size: the pane follows (the demo panes are 100x30)
-            ctx.waitFor(mc -> mod.terminal().buffer().snapshot().cols() != 100, 20 * 10);
-            ctx.waitTicks(5);
-            ctx.takeScreenshot("2-console");
-
-            ctx.getInput().typeChars("echo hello from minecraft");
-            ctx.getInput().pressKey(InputConstants.KEY_RETURN);
-            ctx.waitFor(mc -> text(mod).contains("hello from minecraft\n") || count(text(mod), "hello from minecraft") >= 2,
-                    20 * 15);
-            ctx.waitTicks(5);
-            ctx.takeScreenshot("3-typed");
-
-            String before = mod.terminal().address();
-            // Ctrl+Shift+Down: the test input sends no modifiers (Fabric's TestInput passes 0), so the key event goes
-            // to the console's own handler as GLFW would deliver it
-            ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
-                    new KeyEvent(InputConstants.KEY_DOWN, 0, InputConstants.MOD_CONTROL | InputConstants.MOD_SHIFT)));
-            ctx.waitFor(mc -> mod.terminal().address() != null && !mod.terminal().address().equals(before), 20 * 10);
-            ctx.waitTicks(20);
-            ctx.takeScreenshot("4-switched");
-
-            ctx.getInput().pressKey(InputConstants.KEY_F12);
-            ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
-            if (mod.consoleOpen()) throw new AssertionError("the console key closes the console");
+            sessionView(ctx, mod);
+            app(ctx, mod);
         }
     }
 
-    private static String text(ForceClient mod) {
-        TerminalBuffer.Snapshot s = mod.terminal().buffer().snapshot();
+    /** The session view (native list + one session's terminal, cells mode). */
+    private static void sessionView(ClientGameTestContext ctx, ForceClient mod) {
+        ctx.runOnClient(mc -> mod.controller().handle(new Intent.OpenSessions()));
+        ctx.waitForScreen(ConsoleScreen.class);
+        try {
+            ctx.waitFor(mc -> text(mod.terminal().buffer().snapshot()).contains("retry"), 20 * 15);
+        } catch (AssertionError e) {
+            ctx.takeScreenshot("x-session-view");
+            System.err.println("SESSION VIEW " + mod.terminal().address() + " problem=" + mod.terminal().problem()
+                    + ":\n" + text(mod.terminal().buffer().snapshot()));
+            throw e;
+        }
+        ctx.waitFor(mc -> mod.terminal().buffer().snapshot().cols() != 200, 20 * 10);   // it took the view's size
+        ctx.getInput().typeChars("echo hello from minecraft");
+        ctx.getInput().pressKey(InputConstants.KEY_RETURN);
+        ctx.waitFor(mc -> count(text(mod.terminal().buffer().snapshot()), "hello from minecraft") >= 2, 20 * 15);
+        ctx.waitTicks(5);
+        ctx.takeScreenshot("2-session-view");
+        String before = mod.terminal().address();
+        // Ctrl+Shift+Down: Fabric's test input sends no modifiers, so the event goes to the handler as GLFW/SDL would
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
+                new KeyEvent(InputConstants.KEY_DOWN, 0, InputConstants.MOD_CONTROL | InputConstants.MOD_SHIFT)));
+        ctx.waitFor(mc -> mod.terminal().address() != null && !mod.terminal().address().equals(before), 20 * 10);
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+    }
+
+    /** F12: the whole Force app, the same program a terminal runs. */
+    private static void app(ClientGameTestContext ctx, ForceClient mod) {
+        // the app started hidden as soon as Force was connected: the first F12 shows it at once
+        ctx.waitFor(mc -> mod.app().open(), 20 * 10);
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitForScreen(AppScreen.class);
+        // Force's own ui: its sidebar lists the sessions, its main pane shows one of them
+        try {
+            ctx.waitFor(mc -> {
+                String t = text(mod.app().snapshot());
+                return t.contains("api") && t.contains("web") && t.contains("docs") && t.contains("$");
+            }, 20 * 30);
+        } catch (AssertionError e) {
+            ctx.takeScreenshot("x-app-timeout");
+            System.err.println("APP PROBLEM: " + mod.app().problem());
+            System.err.println("APP SCREEN:\n" + text(mod.app().snapshot()));
+            throw e;
+        }
+        ctx.waitTicks(20);
+        ctx.takeScreenshot("3-app");
+        if (mod.app().vt().mouseMode() == 0) throw new AssertionError("Force asks for the mouse (its sidebar is clickable)");
+
+        ctx.getInput().typeChars("echo typed into force");
+        ctx.getInput().pressKey(InputConstants.KEY_RETURN);
+        ctx.waitFor(mc -> count(text(mod.app().snapshot()), "typed into force") >= 2, 20 * 15);
+
+        // Ctrl+Space: Force's menu (the test input has no modifiers: the event goes to the screen as SDL/GLFW sends it)
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
+                new KeyEvent(InputConstants.KEY_SPACE, 0, InputConstants.MOD_CONTROL)));
+        ctx.waitFor(mc -> text(mod.app().snapshot()).contains("Jump to session"), 20 * 10);
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("4-app-menu");
+        // Esc hides the view; Ctrl+[ is Esc for Force (closes its menu)
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
+                new KeyEvent(InputConstants.KEY_LBRACKET, 0, InputConstants.MOD_CONTROL)));
+        ctx.waitFor(mc -> !text(mod.app().snapshot()).contains("Jump to session"), 20 * 10);
+        if (!(ctx.computeOnClient(mc -> mc.gui.screen()) instanceof AppScreen)) throw new AssertionError("still shown");
+
+        // Alt+3: the third session, as in any terminal
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(new KeyEvent(InputConstants.KEY_3, 0, InputConstants.MOD_ALT)));
+        waitApp(ctx, mod, "alt-3", t -> t.contains("finished: 3 files changed"));
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("5-app-switched");
+
+        // Esc hides it, F12 shows it again: the same app, as it was (still on docs), not a fresh one
+        ctx.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        if (!mod.app().open() || !mod.app().hidden()) throw new AssertionError("hidden, the app keeps running");
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitForScreen(AppScreen.class);
+        waitApp(ctx, mod, "shown-again", t -> t.contains("finished: 3 files changed"));
+        if (mod.app().hidden()) throw new AssertionError("shown again");
+
+        // a laptop's high-DPI panel: larger text, the app follows the size
+        ctx.getInput().resizeWindow(2880, 1800);
+        ctx.waitTicks(60);
+        ctx.takeScreenshot("6-app-hidpi");
+        ctx.getInput().resizeWindow(1600, 900);
+        ctx.waitTicks(20);
+
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("7-game-screen-active-only");
+    }
+
+    private static void waitApp(ClientGameTestContext ctx, ForceClient mod, String name,
+                                java.util.function.Predicate<String> ok) {
+        try {
+            ctx.waitFor(mc -> ok.test(text(mod.app().snapshot())), 20 * 15);
+        } catch (AssertionError e) {
+            ctx.takeScreenshot("x-" + name);
+            System.err.println("APP SCREEN " + name + ":\n" + text(mod.app().snapshot()));
+            throw e;
+        }
+    }
+
+    private static String text(TerminalBuffer.Snapshot s) {
         StringBuilder b = new StringBuilder();
         for (var line : s.lines()) {
             for (var r : line) b.append(r.text());
