@@ -1,14 +1,10 @@
 package cc.useforce.mc.ui;
 
 import cc.useforce.mc.core.ForceModel;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
 
 /** Force's own colours (its terminal theme) and the glass panels, in one place: a restyle is an edit here. */
 public final class Theme {
-    public static final int PANEL = 0xB8141414;           // the glass: Force's ground, see-through
+    public static final int PANEL = 0xDC141414;           // the glass: Force's ground, a little see-through
     public static final int PANEL_EDGE = 0x33FFFFFF;
     public static final int RAISED = 0xCC2C2C2C;          // the selected card
     public static final int TEXT = 0xFFF2F2F2;
@@ -22,17 +18,16 @@ public final class Theme {
     public static final int TERM_BG = 0xE6212121;         // the terminal's ground
     public static final int TERM_FG = 0xFFD0D0D0;
 
-    public static final FontDescription MONO = new FontDescription.Resource(
-            Identifier.fromNamespaceAndPath("force_mc", "mono"));
-
     private Theme() {}
 
-    public static Component mono(String text, Style style) {
-        return Component.literal(text).withStyle(style.withFont(MONO));
+    /** A text size in screen pixels the console uses (12–48). */
+    public static int size(int px) {
+        return Math.max(12, Math.min(48, px));
     }
 
-    public static Component mono(String text) {
-        return mono(text, Style.EMPTY);
+    /** A line box for `px` text. */
+    public static int line(int px) {
+        return GlyphAtlas.get().metrics(size(px)).cellH();
     }
 
     /** The state's colour (as the sidebar: unread wins over working, waiting is grey). */

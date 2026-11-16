@@ -29,7 +29,7 @@ jobs:
           name: Artifacts
           path: build/libs/
 
-  # the real client, headless (Xvfb, Mesa), against a demo Force running `force api` from Force's main
+  # the real client, headless (Docker: Xvfb, Mesa), against a real Force built from Force's main
   gametest:
     runs-on: ubuntu-24.04
     steps:
@@ -40,23 +40,10 @@ jobs:
         with:
           repository: zalandemeter/force
           path: force-src
-      - name: setup jdk
-        uses: actions/setup-java@v5
-        with:
-          java-version: '25'
-          distribution: 'microsoft'
-      - name: virtual display, tmux
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb tmux libgl1-mesa-dri
       - name: client game tests
-        env:
-          FORCE_REPO: ${{ github.workspace }}/force-src
-          LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           chmod +x ./gradlew
-          python3 scripts/demo_force.py /tmp/force-demo > /tmp/demo.log 2>&1 &
-          for i in $(seq 50); do grep -q FORCE_MC_COMMAND /tmp/demo.log && break; sleep 0.2; done
-          export FORCE_MC_COMMAND="$(sed -n 's/^FORCE_MC_COMMAND=//p' /tmp/demo.log)"
-          xvfb-run -a -s "-screen 0 1600x900x24" ./gradlew runClientGameTest --no-daemon --console=plain
+          FORCE_REPO=force-src scripts/gametest.sh
       - name: screenshots
         if: always()
         uses: actions/upload-artifact@v7

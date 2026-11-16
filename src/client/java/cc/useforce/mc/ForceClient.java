@@ -1,6 +1,7 @@
 package cc.useforce.mc;
 
 import cc.useforce.mc.core.ApiConnection;
+import cc.useforce.mc.core.AppTerminal;
 import cc.useforce.mc.core.CellsBackend;
 import cc.useforce.mc.core.Controller;
 import cc.useforce.mc.core.ForceModel;
@@ -34,11 +35,12 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     private final ForceModel model = new ForceModel();
     private final Selection selection = new Selection();
     private CellsBackend terminal;
+    private AppTerminal app;
     private Supervisor supervisor;
     private Controller controller;
-    private KeyMapping consoleKey, hudKey, attentionKey;
+    private KeyMapping consoleKey, hudKey, attentionKey, sessionsKey;
     private boolean hudVisible;
-    private ConsoleScreen console;
+    private net.minecraft.client.gui.screens.Screen console;     // AppScreen or ConsoleScreen while shown
     private boolean wasActive = true;
 
     @Override
@@ -47,8 +49,9 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         config = Config.load();
         hudVisible = config.hud;
         terminal = new CellsBackend(() -> supervisor.connection());
+        app = new AppTerminal(() -> supervisor.connection());
         supervisor = new Supervisor(config.expandedCommand(), model, e -> {
-            if (!model.accept(e)) terminal.accept(e);
+            if (!model.accept(e) && !app.accept(e)) terminal.accept(e);
         }, ApiConnection::process);
         controller = new Controller(model, selection, terminal, () -> supervisor.connection(), this);
         supervisor.start();
@@ -58,6 +61,8 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.hud", InputConstants.KEY_F10, cat));
         attentionKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.force_mc.attention", InputConstants.UNKNOWN.getValue(), cat));
+        sessionsKey = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.force_mc.sessions", InputConstants.UNKNOWN.getValue(), cat));
 
         Hud hud = new Hud(this);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("force_mc", "sessions"), hud::draw);
@@ -69,12 +74,14 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         while (hudKey.consumeClick()) controller.handle(new Intent.ToggleHud());
         while (attentionKey.consumeClick()) {
             controller.handle(new Intent.NextAttention());
-            if (!consoleOpen()) controller.handle(new Intent.OpenConsole());
+            if (!consoleOpen()) controller.handle(new Intent.OpenSessions());
         }
+        while (sessionsKey.consumeClick()) controller.handle(new Intent.OpenSessions());
         // an unfocused window: nobody looks at the console, so the session is not "viewed" (Force SPEC §54)
         boolean active = mc.isWindowActive();
-        if (consoleOpen() && active != wasActive) terminal.setHidden(!active);
+        if (console instanceof ConsoleScreen && active != wasActive) terminal.setHidden(!active);
         wasActive = active;
+        preloadApp(mc);
         ForceModel.Notice n;
         while ((n = model.pollNotice()) != null) {
             if (!config.toasts || (consoleOpen() && n.address().equals(terminal.address()))) continue;
@@ -88,15 +95,37 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         }
     }
 
+    /** The app starts hidden as soon as Force is connected, so the first F12 shows it at once. */
+    private void preloadApp(Minecraft mc) {
+        if (app.open() || model.status() != ForceModel.Status.CONNECTED || app.problem() != null) return;
+        int gs = mc.getWindow().getGuiScale();
+        int px = config.terminalPx(gs);
+        cc.useforce.mc.ui.GlyphAtlas.Metrics m = cc.useforce.mc.ui.GlyphAtlas.get().metrics(px);
+        int margin = Math.max(px / 2, 6);
+        int cols = Math.max(20, Math.min(500, (mc.getWindow().getWidth() - 2 * margin) / m.cellW()));
+        int rows = Math.max(5, Math.min(200, (mc.getWindow().getHeight() - 2 * margin) / m.cellH()));
+        app.setHidden(true);
+        app.open(cols, rows);
+    }
+
     // --- Controller.Ui
     @Override
     public boolean consoleOpen() { return console != null; }
 
     @Override
     public void openConsole() {
+        show(new AppScreen(this));
+    }
+
+    @Override
+    public void openSessions() {
+        show(new ConsoleScreen(this));
+    }
+
+    private void show(net.minecraft.client.gui.screens.Screen s) {
         if (console != null) return;
-        console = new ConsoleScreen(this);
-        Minecraft.getInstance().gui.setScreen(console);
+        console = s;
+        Minecraft.getInstance().gui.setScreen(s);
     }
 
     @Override
@@ -109,16 +138,19 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     @Override
     public void toggleHud() { hudVisible = !hudVisible; }
 
-    /** The console screen went away (closed, or replaced by another screen). */
+    /** The console went away (closed, or replaced by another screen): the app ends, a session view hides, so
+     * Force does not count the sessions as viewed while you play. */
     void consoleRemoved() {
+        if (console instanceof AppScreen) app.setHidden(true);      // keeps running: back at once, as it was
+        else terminal.setHidden(true);
         console = null;
-        terminal.setHidden(true);
     }
 
     // --- for the layouts
     public ForceModel model() { return model; }
     Selection selection() { return selection; }
     public CellsBackend terminal() { return terminal; }
+    public AppTerminal app() { return app; }
     public Controller controller() { return controller; }
     Config config() { return config; }
     boolean hudVisible() { return hudVisible; }

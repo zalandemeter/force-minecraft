@@ -12,7 +12,10 @@ import java.util.function.Supplier;
 public final class Controller {
     public interface Ui {
         boolean consoleOpen();
+        /** The whole app (vt mode). */
         void openConsole();
+        /** The session view (native list + a session's terminal). */
+        void openSessions();
         void closeConsole();
         void toggleHud();
     }
@@ -38,11 +41,12 @@ public final class Controller {
         ForceModel.State s = model.state();
         switch (intent) {
             case Intent.ToggleHud t -> ui.toggleHud();
-            case Intent.OpenConsole o -> open(s);
+            case Intent.OpenConsole o -> ui.openConsole();
+            case Intent.OpenSessions o -> openSessions(s);
             case Intent.CloseConsole c -> close();
             case Intent.ToggleConsole t -> {
                 if (ui.consoleOpen()) close();
-                else open(s);
+                else ui.openConsole();
             }
             case Intent.Step st -> show(selection.step(s, st.delta()));
             case Intent.NextAttention n -> {
@@ -62,9 +66,9 @@ public final class Controller {
         }
     }
 
-    private void open(ForceModel.State s) {
+    private void openSessions(ForceModel.State s) {
         String a = selection.resolve(s);
-        ui.openConsole();
+        ui.openSessions();
         terminal.setHidden(false);
         if (a != null) terminal.show(a);
     }

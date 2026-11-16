@@ -1,62 +1,83 @@
 #!/usr/bin/env python3
-"""A demo Force for the client game tests: its own state dir and tmux server, three sessions this host and one on a
-remote ("devbox", data only), a snapshot kept fresh, and `force` = the real `force api` of a Force checkout.
+"""A real Force for the client game tests: a Force release (FORCE_TARBALL, built from a Force checkout with its
+scripts/build-release.sh) installed into this machine's $HOME as the one-line installer would, three shell sessions
+with something on their screens, and its daemon running. Meant for a throwaway container (scripts/gametest.sh, CI):
+it installs into $HOME.
 
-    FORCE_REPO=~/force python3 scripts/demo_force.py DIR     # prints FORCE_MC_COMMAND=…, then runs until killed
+    FORCE_TARBALL=…/force-X.Y.Z-linux-x86_64.tar.gz python3 scripts/demo_force.py
+    # prints FORCE_MC_COMMAND=…, then waits until killed
 """
-import json
 import os
+import runpy
 import subprocess
 import sys
+import tarfile
 import time
 from pathlib import Path
 
-repo = os.environ.get("FORCE_REPO", str(Path.home() / "force"))
-base = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/force-demo").resolve()
-home, state = base / "home", base / "state"
-for d in (home, state, base / "claude"):
-    d.mkdir(parents=True, exist_ok=True)
-(base / "settings.json").write_text(json.dumps({"layout": "classic"}))
-sock = "force-mc-demo"
-env = {"FORCE_HOME": str(home), "FORCE_STATE": str(state), "FORCE_CLAUDE_DIR": str(base / "claude"),
-       "FORCE_CONFIG": str(base / "settings.json"), "FORCE_TMUX_SOCKET": sock, "FORCE_UI_SOCKET": sock + "-ui"}
-wrapper = base / "force"
-wrapper.write_text("#!/bin/sh\n" + "".join(f"export {k}='{v}'\n" for k, v in env.items())
-                   + f"exec python3 -c 'import sys; sys.path.insert(0, \"{repo}\"); from force import cli; "
-                     "sys.exit(cli.main(sys.argv[1:]))' \"$@\"\n")
-wrapper.chmod(0o755)
+home = Path.home()
+tarball = Path(os.environ["FORCE_TARBALL"])
+releases = home / ".local/share/force/releases"
+releases.mkdir(parents=True, exist_ok=True)
+with tarfile.open(tarball) as t:
+    top = t.getnames()[0].split("/")[0]                 # force-X.Y.Z
+    t.extractall(releases, filter="data")
+rel = releases / "gametest"
+if rel.exists():
+    subprocess.run(["rm", "-rf", str(rel)], check=True)
+(releases / top).rename(rel)
+subprocess.run([sys.executable, "-I", "-c",
+                "import runpy, sys; sys.path.insert(0, sys.argv[1]); sys.argv = ['force setup'] + sys.argv[2:]; "
+                "runpy.run_module('force.setup', run_name='__main__')",
+                str(rel), "--release", str(rel), "--python", sys.executable, "--no-fonts"], check=True,
+               stdout=subprocess.DEVNULL)
+force = str(home / ".local/bin/force")
 
-banner = {"api": "\\e[38;5;173m⚡ demo session api\\e[0m: Claude Code would be here",
-          "web": "\\e[1;31m! demo session web\\e[0m wants to run \\e[33mBash(rm -rf build)\\e[0m",
-          "docs": "\\e[32m● demo session docs\\e[0m finished: \\e[4m3 files changed\\e[0m"}
-subprocess.run(["tmux", "-L", sock, "kill-server"], capture_output=True)
-for name, text in banner.items():
-    cmd = f"printf '{text}\\n\\n'; PS1='$ ' exec bash --norc --noprofile -i"
-    subprocess.run(["tmux", "-L", sock, "-f", "/dev/null", "new-session", "-d", "-s", name, "-x", "100", "-y", "30",
-                    "sh", "-c", cmd], check=True)
-    pane = subprocess.run(["tmux", "-L", sock, "display", "-p", "-t", f"={name}:", "#{pane_id}"],
-                          capture_output=True, text=True).stdout.strip()
-    subprocess.run(["tmux", "-L", sock, "set-option", "-p", "-t", pane, "@force_role", "agent"], check=True)
+# what each session shows: `bash -l` reads this profile; the session's name picks its screen (all made up)
+AGENT = r"""
+\e[38;5;174m╭─────────────────────────────────────────────╮\e[0m
+\e[38;5;174m│\e[0m \e[1m✻ Welcome to the demo agent\e[0m                 \e[38;5;174m│\e[0m
+\e[38;5;174m╰─────────────────────────────────────────────╯\e[0m
 
-remote = state / "remotes" / "devbox"
-remote.mkdir(parents=True, exist_ok=True)
-(base / "hosts.json").write_text(json.dumps({"hosts": [{"name": "devbox", "ssh": "devbox"}]}))
-(remote / "status.json").write_text(json.dumps({"state": "connected", "version": "1.6.0"}))
+\e[1m> \e[0mmake the retry wait grow, and test it
 
+⏺ \e[1mUpdate\e[0m(src/net/retry.py)
+  ⎿  Updated src/net/retry.py with 3 additions and 1 removal
+     \e[2m15\e[0m           except TimeoutError:
+     \e[2m16\e[0m \e[48;5;52m-             time.sleep(1)                 \e[0m
+     \e[2m16\e[0m \e[48;5;22m+             wait = min(30, 2 ** attempt)  \e[0m
+     \e[2m17\e[0m \e[48;5;22m+             log.info(f"retry in {wait} s")\e[0m
+     \e[2m18\e[0m \e[48;5;22m+             time.sleep(wait)              \e[0m
 
-def session(name, i, st, activity, **kw):
-    return {"name": name, "index": i, "order": i, "state": st, "cwd": f"/home/demo/{name}", "kind": "claude",
-            "activity": activity, "session_id": name, "viewed": False, **kw}
+⏺ \e[1mBash\e[0m(pytest -q tests/test_retry.py)
+  ⎿  \e[32m....\e[0m
+     4 passed in 0.31s
 
+⏺ The wait now doubles from 1 s up to 30 s, and every retry is logged.
+"""
+BANNERS = {"api": AGENT.strip("\n"),
+           "web": r"\e[1;31m! demo session web\e[0m wants to run \e[33mBash(rm -rf build)\e[0m",
+           "docs": r"\e[32m● demo session docs\e[0m finished: \e[4m3 files changed\e[0m"}
+profile = ["case \"$(tmux display -p '#S' 2>/dev/null)\" in"]
+for name, text in BANNERS.items():
+    profile.append(f"  {name}) printf '%b\\n\\n' '{text}' ;;")
+profile += ["esac", "PS1='$ '"]
+(home / ".bash_profile").write_text("\n".join(profile) + "\n")
+(home / ".config/force").mkdir(parents=True, exist_ok=True)
 
-print(f"FORCE_MC_COMMAND={wrapper} api", flush=True)
+for name in BANNERS:
+    subprocess.run([force, "new", name, "--kind", "shell", "--no-switch"], check=True, stdout=subprocess.DEVNULL)
+# something running in web, so the game-screen list (only sessions with a colour) has a working one
+time.sleep(1)
+subprocess.run(["tmux", "-L", "force", "send-keys", "-t", "=web:", "sleep 3600", "Enter"], check=True)
+# the daemon (no systemd here: Force starts its own, as `force` would)
+app = str(home / ".local/share/force/app")
+subprocess.run([sys.executable, "-I", "-c", f"import sys; sys.path.insert(0, {app!r}); from force import cli; "
+                "cli._start_host(cli.make_cockpit())"], check=True)
+deadline = time.time() + 30
+snapshot = home / ".local/state/force/snapshot.json"
+while time.time() < deadline and not snapshot.exists():
+    time.sleep(0.2)
+print(f"FORCE_MC_COMMAND={force} api", flush=True)
 while True:
-    now = int(time.time() * 1000)
-    snap = {"generated_ms": now, "sessions": [
-        session("api", 1, "WORKING", "editing force/api.py"),
-        session("web", 2, "NEEDS_YOU", "Bash: rm -rf build"),
-        session("docs", 3, "YOUR_TURN", "finished: 3 files changed", unread=True)]}
-    (state / "snapshot.json").write_text(json.dumps(snap))
-    (remote / "snapshot.json").write_text(json.dumps({"generated_ms": now, "sessions": [
-        session("ci", 1, "IDLE", "watching the release run")]}))
-    time.sleep(1)
+    time.sleep(3600)

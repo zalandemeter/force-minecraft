@@ -1,42 +1,53 @@
 package cc.useforce.mc.ui;
 
 import cc.useforce.mc.core.TerminalBuffer;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.network.chat.Style;
 
 /**
- * Draws a {@link TerminalBuffer}, whatever backend filled it. A cell is {@link #CELL_W} × {@link #CELL_H} font units
- * (the mono font's advance is exactly 5), drawn at `unitPx` screen pixels per unit, so glyphs sit on whole pixels and
- * keep their size whatever the GUI scale. {@link #fit} says how many cells an area holds at that size (the size the
- * view asks Force for); a larger screen than that is scaled down to fit, a smaller one is centred.
+ * Draws a {@link TerminalBuffer}, whatever backend filled it, in screen pixels: a cell is the font's own advance wide
+ * and a 1.3 line tall at `px`, every glyph on whole pixels. {@link #fit} says how many cells an area holds (the size
+ * the view asks Force for); a bigger screen than that is scaled down to fit, a smaller one sits top-left.
  */
 public final class TerminalView {
-    public static final int CELL_W = 5, CELL_H = 9;
-
     public record Grid(int cols, int rows) {}
 
-    /** The cells `w` × `h` GUI units hold at `unitPx` screen pixels per font unit. */
-    public static Grid fit(int w, int h, double unitPx, int guiScale) {
-        double s = unitPx / guiScale;
-        return new Grid(Math.max(20, (int) (w / (CELL_W * s))), Math.max(5, (int) (h / (CELL_H * s))));
+    /** Glyphs Claude Code draws that no bundled font has: stand-ins of the same look. */
+    static String substitute(int cp) {
+        return switch (cp) {
+            case 0x23FA -> "●";             // ⏺ record button: Claude's bullet
+            case 0x23F5 -> "▸";             // ⏵ play: Claude's mode marker
+            case 0x23F8 -> "‖";             // ⏸ pause
+            default -> null;
+        };
     }
 
-    public void draw(GuiGraphicsExtractor g, Font font, int x, int y, int w, int h, TerminalBuffer.Snapshot s,
-                     double unitPx, int guiScale) {
-        g.fill(x, y, x + w, y + h, Theme.TERM_BG);
+    public static int cellW(Canvas c, int px) {
+        return GlyphAtlas.get().metrics(px).cellW();
+    }
+
+    public static int cellH(int px) {
+        return GlyphAtlas.get().metrics(px).cellH();
+    }
+
+    public static Grid fit(Canvas c, int w, int h, int px) {
+        return new Grid(Math.max(20, w / cellW(c, px)), Math.max(5, h / cellH(px)));
+    }
+
+    public void draw(Canvas c, int x, int y, int w, int h, TerminalBuffer.Snapshot s, int px) {
+        draw(c, x, y, w, h, s, px, false);
+    }
+
+    /** `glass`: the area is not filled, and cells on Force's own ground (#262626/#212121) leave the glass showing. */
+    public void draw(Canvas c, int x, int y, int w, int h, TerminalBuffer.Snapshot s, int px, boolean glass) {
+        if (!glass) c.fill(x, y, w, h, Theme.TERM_BG);
         if (s.cols() == 0 || s.rows() == 0) return;
-        float scale = (float) (unitPx / guiScale);
-        float need = Math.min((float) w / (s.cols() * CELL_W), (float) h / (s.rows() * CELL_H));
-        if (need < scale) scale = need;                       // the session is bigger than asked: fit it
-        int ox = x + (int) ((w - s.cols() * CELL_W * scale) / 2);
-        int oy = y + (int) ((h - s.rows() * CELL_H * scale) / 2);
-        var pose = g.pose();
+        int cw = cellW(c, px), ch = cellH(px);
+        float scale = Math.min(1f, Math.min((float) w / (s.cols() * cw), (float) h / (s.rows() * ch)));
+        var pose = c.g.pose();
         pose.pushMatrix();
-        pose.translate(ox, oy);
-        pose.scale(scale, scale);
+        pose.translate(x, y);
+        if (scale < 1f) pose.scale(scale, scale);       // the session is bigger than asked (another terminal): fit
         for (int row = 0; row < s.rows() && row < s.lines().size(); row++) {
-            int col = 0;
+            int col = 0, ry = row * ch;
             for (TerminalBuffer.Run r : s.lines().get(row)) {
                 int len = r.text().codePointCount(0, r.text().length());
                 int fg = r.fg() != null ? 0xFF000000 | r.fg() : Theme.TERM_FG;
@@ -46,33 +57,53 @@ public final class TerminalView {
                     fg = bg != null ? 0xFF000000 | bg : 0xFF212121;
                     bg = old & 0xFFFFFF;
                 }
-                if (r.bold()) fg = brighter(fg);              // Minecraft's bold is a smeared double draw
                 if (r.dim()) fg = (fg & 0xFF000000) | ((fg >> 1) & 0x7F7F7F);
-                if (bg != null) g.fill(col * CELL_W, row * CELL_H, (col + len) * CELL_W, (row + 1) * CELL_H,
-                        0xFF000000 | bg);
-                Style st = Style.EMPTY.withItalic(r.italic()).withUnderlined(r.underline());
-                int i = 0, c = col;
-                while (i < r.text().length()) {               // one cell per character: the grid holds
-                    int cp = r.text().codePointAt(i);
-                    if (cp != ' ') g.text(font, Theme.mono(new String(Character.toChars(cp)), st), c * CELL_W,
-                            row * CELL_H, fg, false);
-                    i += Character.charCount(cp);
-                    c++;
-                }
+                if (bg != null && !(glass && (bg == 0x262626 || bg == 0x212121)))
+                    c.fill(col * cw, ry, len * cw, ch, 0xFF000000 | bg);
+                drawRun(c, r.text(), col, ry, cw, px, fg, r.bold());
+                if (r.underline()) c.fill(col * cw, ry + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12),
+                        len * cw, Math.max(1, px / 14), fg);
                 col += len;
             }
         }
         if (s.cursorVisible() && (System.currentTimeMillis() / 530) % 2 == 0)
-            g.fill(s.cursorX() * CELL_W, s.cursorY() * CELL_H, (s.cursorX() + 1) * CELL_W, (s.cursorY() + 1) * CELL_H,
-                    0xAAD0D0D0);
+            c.fill(s.cursorX() * cw, s.cursorY() * ch, cw, ch, 0xB0D0D0D0);
         pose.popMatrix();
     }
 
-    static int brighter(int argb) {
-        int r = (argb >> 16) & 0xFF, gr = (argb >> 8) & 0xFF, b = argb & 0xFF;
-        r = r + (255 - r) / 3;
-        gr = gr + (255 - gr) / 3;
-        b = b + (255 - b) / 3;
-        return (argb & 0xFF000000) | (r << 16) | (gr << 8) | b;
+    /** Each character in its own cell; box-drawing and block characters as exact lines and blocks. */
+    private static void drawRun(Canvas c, String text, int col, int y, int cw, int px, int fg, boolean bold) {
+        StringBuilder plain = new StringBuilder();
+        int start = col, i = 0, cc = col;
+        while (i < text.length()) {
+            int cp = text.codePointAt(i);
+            i += Character.charCount(cp);
+            boolean wide = i < text.length() && text.charAt(i) == '\u0000';
+            if (cp == 0) {
+                // the second cell of a wide character: drawn with the first
+                flush(c, plain, start, y, cw, px, fg, bold);
+                start = cc + 1;
+            } else if (wide) {
+                flush(c, plain, start, y, cw, px, fg, bold);
+                GlyphAtlas.get().draw(c, new String(Character.toChars(cp)), cc * cw, y, px, bold, fg, 2 * cw);
+                start = cc + 1;
+            } else if (BoxDraw.draw(c, cp, cc * cw, y, cw, cellH(px), px, fg)) {
+                flush(c, plain, start, y, cw, px, fg, bold);
+                start = cc + 1;
+            } else {
+                if (plain.isEmpty()) start = cc;
+                String sub = substitute(cp);
+                if (sub != null) plain.append(sub);
+                else plain.appendCodePoint(cp);
+            }
+            cc++;
+        }
+        flush(c, plain, start, y, cw, px, fg, bold);
+    }
+
+    private static void flush(Canvas c, StringBuilder text, int col, int y, int cw, int px, int fg, boolean bold) {
+        if (text.isEmpty()) return;
+        GlyphAtlas.get().draw(c, text.toString(), col * cw, y, px, bold, fg, cw);
+        text.setLength(0);
     }
 }
