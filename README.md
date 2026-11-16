@@ -98,12 +98,15 @@ are in `run/clientGameTest/screenshots/`.
 
 ## Text
 
-Everything is drawn in screen pixels, not Minecraft's scaled GUI units, with fonts rasterised at exactly the size
-they are drawn (`scripts/fonts.py` writes one definition per size), so text stays crisp at any GUI scale. The
-terminal uses JetBrains Mono (real bold), with DejaVu Sans Mono and DejaVu Sans for what it lacks; box-drawing and
-block characters are drawn as lines and blocks that meet across cells, as terminals do.
+The console draws its own text (`ui/GlyphAtlas`): FreeType rasterises each glyph at exactly the pixel size it is
+drawn, into texture pages, and everything is drawn in screen pixels rather than Minecraft's scaled GUI units, so text
+is crisp at any GUI scale and sizes follow the GUI scale. It does not go through Minecraft's font system, which loads
+TTF fonts on several threads at once (FreeType's TrueType hinting interpreter crashes under that with many sizes); one
+FreeType library of the mod's own is used by the render thread only, with light auto-hinting. JetBrains Mono (with
+its real bold) first, DejaVu Sans Mono and DejaVu Sans for what it lacks; box-drawing and block characters are drawn
+as lines and blocks that meet across cells, as terminals do.
 
 ## Licence
 
-MIT. Fonts in `assets/force_mc/font/`: JetBrains Mono (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans
+MIT. Fonts in `assets/force_mc/fonts/`: JetBrains Mono (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans
 (Bitstream Vera licence).

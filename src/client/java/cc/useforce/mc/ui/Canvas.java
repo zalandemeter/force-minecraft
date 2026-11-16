@@ -2,12 +2,11 @@ package cc.useforce.mc.ui;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.network.chat.Component;
 
 /**
  * Drawing in screen pixels: Minecraft's GUI coordinates are scaled (2×, 3×…), which blurs small text. Inside
- * {@link #begin} one unit is one screen pixel, and the fonts are rasterised at exactly the size they are drawn
- * (Theme.font), so text is crisp at any GUI scale.
+ * {@link #begin} one unit is one screen pixel, and text is rasterised at exactly the size it is drawn
+ * ({@link GlyphAtlas}), so it is crisp at any GUI scale.
  */
 public final class Canvas {
     public final GuiGraphicsExtractor g;
@@ -40,17 +39,13 @@ public final class Canvas {
         g.outline(x, y, w, h, argb);
     }
 
-    /** `text` with its top at `y` (the font's own line box), `px` pixels tall. */
+    /** `text` in a line box whose top is `y`, `px` pixels: the ink centred in the box (GlyphAtlas). */
     public void text(String text, int x, int y, int px, int color, boolean bold) {
-        g.text(font, Theme.text(text, px, bold), x, y + Theme.baseline(px), color, false);
-    }
-
-    public void text(Component c, int x, int y, int px, int color) {
-        g.text(font, c, x, y + Theme.baseline(px), color, false);
+        GlyphAtlas.get().draw(this, text, x, y, px, bold, color, 0);
     }
 
     public int textWidth(String text, int px, boolean bold) {
-        return font.width(Theme.text(text, px, bold));
+        return GlyphAtlas.get().width(text, px, bold);
     }
 
     /** `text` cut with "…" to fit `w` pixels. */

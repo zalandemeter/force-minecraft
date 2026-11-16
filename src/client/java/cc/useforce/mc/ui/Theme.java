@@ -1,10 +1,6 @@
 package cc.useforce.mc.ui;
 
 import cc.useforce.mc.core.ForceModel;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
-import net.minecraft.network.chat.Style;
-import net.minecraft.resources.Identifier;
 
 /** Force's own colours (its terminal theme) and the glass panels, in one place: a restyle is an edit here. */
 public final class Theme {
@@ -22,51 +18,16 @@ public final class Theme {
     public static final int TERM_BG = 0xE6212121;         // the terminal's ground
     public static final int TERM_FG = 0xFFD0D0D0;
 
-    /** The pixel sizes there is a font for (scripts/fonts.py): each rasterised at exactly that size. */
-    public static final int[] SIZES = {12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26, 28, 32, 36, 40, 44, 48};
-    private static final FontDescription[] REGULAR = new FontDescription[SIZES.length];
-    private static final FontDescription[] BOLD = new FontDescription[SIZES.length];
-
-    static {
-        for (int i = 0; i < SIZES.length; i++) {
-            REGULAR[i] = new FontDescription.Resource(Identifier.fromNamespaceAndPath("force_mc", "px_" + SIZES[i]));
-            BOLD[i] = new FontDescription.Resource(Identifier.fromNamespaceAndPath("force_mc", "px_" + SIZES[i] + "_bold"));
-        }
-    }
-
     private Theme() {}
 
-    /** The nearest size there is a font for. */
+    /** A text size in screen pixels the console uses (12–48). */
     public static int size(int px) {
-        int best = SIZES[0];
-        for (int s : SIZES) if (Math.abs(s - px) < Math.abs(best - px)) best = s;
-        return best;
+        return Math.max(12, Math.min(48, px));
     }
 
-    public static FontDescription font(int px, boolean bold) {
-        int s = size(px);
-        for (int i = 0; i < SIZES.length; i++) if (SIZES[i] == s) return bold ? BOLD[i] : REGULAR[i];
-        return REGULAR[0];
-    }
-
-    public static Component text(String text, int px, boolean bold) {
-        return Component.literal(text).withStyle(Style.EMPTY.withFont(font(px, bold)));
-    }
-
-    public static Component text(String text, int px, Style style, boolean bold) {
-        return Component.literal(text).withStyle(style.withFont(font(px, bold)));
-    }
-
-    /** Where Minecraft's text origin goes, below a line box's top, so a `px` font's ink is centred in the box.
-     * Minecraft puts a TTF glyph's baseline 7 units below the origin at any size (measured: screenshots at 16 and
-     * 36 px); JetBrains Mono's ink runs from 0.78 em above the baseline to 0.22 em below, centred 0.28 em up. */
-    public static int baseline(int px) {
-        return Math.round(line(px) / 2f + 0.28f * size(px)) - 7;
-    }
-
-    /** A line box for `px` text: JetBrains Mono's comfortable 1.3. */
+    /** A line box for `px` text. */
     public static int line(int px) {
-        return Math.round(size(px) * 1.3f);
+        return GlyphAtlas.get().metrics(size(px)).cellH();
     }
 
     /** The state's colour (as the sidebar: unread wins over working, waiting is grey). */

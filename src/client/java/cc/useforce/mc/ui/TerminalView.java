@@ -1,7 +1,6 @@
 package cc.useforce.mc.ui;
 
 import cc.useforce.mc.core.TerminalBuffer;
-import net.minecraft.network.chat.Style;
 
 /**
  * Draws a {@link TerminalBuffer}, whatever backend filled it, in screen pixels: a cell is the font's own advance wide
@@ -22,11 +21,11 @@ public final class TerminalView {
     }
 
     public static int cellW(Canvas c, int px) {
-        return Math.max(1, c.textWidth("M", px, false));
+        return GlyphAtlas.get().metrics(px).cellW();
     }
 
     public static int cellH(int px) {
-        return Theme.line(px);
+        return GlyphAtlas.get().metrics(px).cellH();
     }
 
     public static Grid fit(Canvas c, int w, int h, int px) {
@@ -55,8 +54,9 @@ public final class TerminalView {
                 }
                 if (r.dim()) fg = (fg & 0xFF000000) | ((fg >> 1) & 0x7F7F7F);
                 if (bg != null) c.fill(col * cw, ry, len * cw, ch, 0xFF000000 | bg);
-                Style st = Style.EMPTY.withItalic(r.italic()).withUnderlined(r.underline());
-                drawRun(c, r.text(), col, ry, cw, px, fg, r.bold(), st);
+                drawRun(c, r.text(), col, ry, cw, px, fg, r.bold());
+                if (r.underline()) c.fill(col * cw, ry + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12),
+                        len * cw, Math.max(1, px / 14), fg);
                 col += len;
             }
         }
@@ -65,36 +65,30 @@ public final class TerminalView {
         pose.popMatrix();
     }
 
-    /** ASCII stretches go in one call (the font's advance is the cell); anything else one cell per character. */
-    private static void drawRun(Canvas c, String text, int col, int y, int cw, int px, int fg, boolean bold,
-                                Style st) {
-        StringBuilder ascii = new StringBuilder();
+    /** Each character in its own cell; box-drawing and block characters as exact lines and blocks. */
+    private static void drawRun(Canvas c, String text, int col, int y, int cw, int px, int fg, boolean bold) {
+        StringBuilder plain = new StringBuilder();
         int start = col, i = 0, cc = col;
         while (i < text.length()) {
             int cp = text.codePointAt(i);
             i += Character.charCount(cp);
-            if (cp >= 0x20 && cp < 0x7F) {
-                if (ascii.isEmpty()) start = cc;
-                ascii.appendCodePoint(cp);
+            if (BoxDraw.draw(c, cp, cc * cw, y, cw, cellH(px), px, fg)) {
+                flush(c, plain, start, y, cw, px, fg, bold);
+                start = cc + 1;
             } else {
-                flush(c, ascii, start, y, cw, px, fg, bold, st);
-                if (BoxDraw.draw(c, cp, cc * cw, y, cw, cellH(px), px, fg)) {
-                    // drawn as lines and blocks
-                } else if (cp != ' ') {
-                    String sub = substitute(cp);
-                    c.text(Theme.text(sub != null ? sub : new String(Character.toChars(cp)), px, st, bold), cc * cw,
-                            y, px, fg);
-                }
+                if (plain.isEmpty()) start = cc;
+                String sub = substitute(cp);
+                if (sub != null) plain.append(sub);
+                else plain.appendCodePoint(cp);
             }
             cc++;
         }
-        flush(c, ascii, start, y, cw, px, fg, bold, st);
+        flush(c, plain, start, y, cw, px, fg, bold);
     }
 
-    private static void flush(Canvas c, StringBuilder ascii, int col, int y, int cw, int px, int fg, boolean bold,
-                              Style st) {
-        if (ascii.isEmpty()) return;
-        c.text(Theme.text(ascii.toString(), px, st, bold), col * cw, y, px, fg);
-        ascii.setLength(0);
+    private static void flush(Canvas c, StringBuilder text, int col, int y, int cw, int px, int fg, boolean bold) {
+        if (text.isEmpty()) return;
+        GlyphAtlas.get().draw(c, text.toString(), col * cw, y, px, bold, fg, cw);
+        text.setLength(0);
     }
 }

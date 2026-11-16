@@ -50,7 +50,7 @@ public final class ConsoleScreen extends Screen {
         px = mod.config().uiPx(c.scale);
         tpx = mod.config().terminalPx(c.scale);
         int m = px;
-        lw = Math.max(px * 14, Math.min(px * 22, c.width() / 5));
+        lw = Math.max(px * 14, Math.min(px * 22, c.width() / 4));
         lx = m;
         ly = m;
         lh = c.height() - 2 * m;
@@ -80,7 +80,7 @@ public final class ConsoleScreen extends Screen {
         int head = Theme.line(px) + px;
         list.draw(c, lx + 1, ly + head, lw - 2, lh - head - Theme.line(px) - px / 2, s, mod.terminal().address(), false,
                 s.hosts().size() > 1, px);
-        c.text(keyHint(), lx + px / 2, ly + lh - Theme.line(px) - px / 4, px, Theme.DIM, false);
+        c.text(c.clip(keyHint(), lw - px, px), lx + px / 2, ly + lh - Theme.line(px) - px / 4, px, Theme.DIM, false);
 
         Panel.draw(c, tx, ty, tw, th);
         ForceModel.Session cur = mod.terminal().address() == null ? null : s.find(mod.terminal().address());
