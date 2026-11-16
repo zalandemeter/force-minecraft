@@ -4,6 +4,7 @@ import cc.useforce.mc.core.ForceModel;
 import cc.useforce.mc.core.Intent;
 import cc.useforce.mc.core.Keys;
 import cc.useforce.mc.core.TerminalBackend;
+import cc.useforce.mc.ui.Canvas;
 import cc.useforce.mc.ui.Panel;
 import cc.useforce.mc.ui.SessionList;
 import cc.useforce.mc.ui.TerminalView;
@@ -29,7 +30,8 @@ public final class ConsoleScreen extends Screen {
     private final TerminalView view = new TerminalView();
     private final StringBuilder typed = new StringBuilder();
     private final Keys keys = new Keys(KeyTable.create());
-    private int lx, ly, lw, lh, tx, ty, tw, th;
+    private int lx, ly, lw, lh, tx, ty, tw, th;     // screen pixels
+    private int scale = 1;                          // screen pixels per GUI unit
 
     ConsoleScreen(ForceClient mod) {
         super(Component.translatable("force_mc.console.title"));
@@ -42,16 +44,20 @@ public final class ConsoleScreen extends Screen {
     @Override
     public boolean shouldCloseOnEsc() { return false; }
 
-    private void layout() {
-        int m = 8;
-        lw = Math.max(120, Math.min(200, width / 5));
+    private int px, tpx;            // the list's and the terminal's text sizes (screen pixels)
+
+    private void layout(Canvas c) {
+        px = mod.config().uiFontPx;
+        tpx = mod.config().terminalFontPx;
+        int m = px;
+        lw = Math.max(px * 14, Math.min(px * 22, c.width() / 5));
         lx = m;
         ly = m;
-        lh = height - 2 * m;
-        tx = lx + lw + 6;
+        lh = c.height() - 2 * m;
+        tx = lx + lw + px / 2;
         ty = m;
-        tw = width - tx - m;
-        th = height - 2 * m;
+        tw = c.width() - tx - m;
+        th = c.height() - 2 * m;
     }
 
     @Override
@@ -62,33 +68,33 @@ public final class ConsoleScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         flushTyped();
-        layout();
+        Canvas c = new Canvas(g, font, minecraft.getWindow().getGuiScale());
+        scale = c.scale;
+        layout(c);
         ForceModel model = mod.model();
         ForceModel.State s = model.state();
-        Panel.draw(g, lx, ly, lw, lh);
-        g.text(font, Theme.mono("⚡"), lx + 5, ly + 4, Theme.CORAL, false);
-        g.text(font, Theme.mono("Force"), lx + 15, ly + 4, Theme.TEXT, false);
-        String head = Hud.header(model, s);
-        g.text(font, Theme.mono(head), lx + lw - font.width(Theme.mono(head)) - 5, ly + 4,
-                s.needsYou() > 0 ? Theme.RED : Theme.DIM, false);
-        list.draw(g, font, lx + 1, ly + 16, lw - 2, lh - 30, s, mod.terminal().address(), false,
-                s.hosts().size() > 1);
-        g.text(font, Theme.mono(keyHint()), lx + 5, ly + lh - 11, Theme.DIM, false);
+        c.begin();
+        Panel.draw(c, lx, ly, lw, lh);
+        Hud.header(c, model, s, lx, ly, lw, px);
+        int head = Theme.line(px) + px;
+        list.draw(c, lx + 1, ly + head, lw - 2, lh - head - Theme.line(px) - px / 2, s, mod.terminal().address(), false,
+                s.hosts().size() > 1, px);
+        c.text(keyHint(), lx + px / 2, ly + lh - Theme.line(px) - px / 4, px, Theme.DIM, false);
 
-        Panel.draw(g, tx, ty, tw, th);
+        Panel.draw(c, tx, ty, tw, th);
         ForceModel.Session cur = mod.terminal().address() == null ? null : s.find(mod.terminal().address());
         String title = cur == null ? Hud.empty(model) : cur.address() + "  ·  " + Theme.label(cur);
-        g.text(font, Theme.mono(title), tx + 6, ty + 4, cur == null ? Theme.DIM : Theme.color(cur), false);
+        c.text(title, tx + px / 2, ty + px / 2, px, cur == null ? Theme.DIM : Theme.color(cur), cur != null);
         TerminalBackend term = mod.terminal();
         String problem = term.problem();
-        if (problem != null) g.text(font, Theme.mono(problem), tx + 6, ty + 16, Theme.RED, false);
+        int vy = ty + head, vh = th - head - px / 2, vx = tx + px / 2, vw = tw - px;
+        if (problem != null) c.text(problem, vx, vy, px, Theme.RED, false);
         else {
-            int gs = minecraft.getWindow().getGuiScale();
-            double unit = mod.config().terminalScale;
-            TerminalView.Grid grid = TerminalView.fit(tw - 4, th - 17, unit, gs);
+            TerminalView.Grid grid = TerminalView.fit(c, vw, vh, tpx);
             term.resize(grid.cols(), grid.rows());          // only sent when it changed
-            view.draw(g, font, tx + 2, ty + 15, tw - 4, th - 17, term.buffer().snapshot(), unit, gs);
+            view.draw(c, vx, vy, vw, vh, term.buffer().snapshot(), tpx);
         }
+        c.end();
     }
 
     private String keyHint() {
@@ -132,8 +138,9 @@ public final class ConsoleScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
-        if (e.x() >= lx && e.x() < lx + lw) {
-            String a = list.at(e.y());
+        double x = e.x() * scale, y = e.y() * scale;
+        if (x >= lx && x < lx + lw) {
+            String a = list.at(y);
             if (a != null) mod.controller().handle(new Intent.Select(a));
         }
         return true;
@@ -142,13 +149,20 @@ public final class ConsoleScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         if (sy == 0) return true;
-        if (mx >= lx && mx < lx + lw) mod.controller().handle(new Intent.Step(sy > 0 ? -1 : 1));
+        if (mx * scale >= lx && mx * scale < lx + lw) mod.controller().handle(new Intent.Step(sy > 0 ? -1 : 1));
         else mod.controller().handle(new Intent.Scroll(sy > 0 ? -3 : 3));
         return true;
     }
 
     @Override
+    protected void init() {
+        // typed characters only arrive while a text input has the focus (SDL from Minecraft 26.3; IME before)
+        minecraft.onTextInputFocusChange(this, true);
+    }
+
+    @Override
     public void removed() {
+        minecraft.onTextInputFocusChange(this, false);
         mod.consoleRemoved();
     }
 }

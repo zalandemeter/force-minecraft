@@ -40,6 +40,7 @@ Settings: `config/force_mc.json` (written on the first start):
 | `hud` | `true` | the session list on the game screen |
 | `toasts`, `sound` | `true` | a toast when a session needs you, finishes or stops |
 | `hudRows` | `8` | the most sessions the game-screen list shows |
+| `terminalFontPx`, `uiFontPx`, `hudFontPx` | `16`, `16`, `15` | text sizes in screen pixels (12–24): the console's terminal, its list, the game-screen list |
 
 ## Versions
 
@@ -94,6 +95,14 @@ scripts/gametest.sh             # the client game tests in Docker, against a dem
 `scripts/gametest.sh` needs Docker and a Force checkout (`FORCE_REPO`, default `../force`); screenshots of each step
 are in `run/clientGameTest/screenshots/`.
 
+## Text
+
+Everything is drawn in screen pixels, not Minecraft's scaled GUI units, with fonts rasterised at exactly the size
+they are drawn (`scripts/fonts.py` writes one definition per size), so text stays crisp at any GUI scale. The
+terminal uses JetBrains Mono (real bold), with DejaVu Sans Mono and DejaVu Sans for what it lacks; box-drawing and
+block characters are drawn as lines and blocks that meet across cells, as terminals do.
+
 ## Licence
 
-MIT. The terminal font is DejaVu Sans Mono (Bitstream Vera licence, `assets/force_mc/font/`).
+MIT. Fonts in `assets/force_mc/font/`: JetBrains Mono (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans
+(Bitstream Vera licence).

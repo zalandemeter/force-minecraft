@@ -1,0 +1,34 @@
+{
+	"providers": [
+		{
+			"type": "ttf",
+			"file": "force_mc:jbm-regular.ttf",
+			"size": 16.0,
+			"oversample": 1.0,
+			"shift": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"type": "ttf",
+			"file": "force_mc:dejavu-sans-mono.ttf",
+			"size": 16.0,
+			"oversample": 1.0,
+			"shift": [
+				0.0,
+				0.0
+			]
+		},
+		{
+			"type": "ttf",
+			"file": "force_mc:dejavu-sans.ttf",
+			"size": 16.0,
+			"oversample": 1.0,
+			"shift": [
+				0.0,
+				0.0
+			]
+		}
+	]
+}

@@ -22,17 +22,49 @@ public final class Theme {
     public static final int TERM_BG = 0xE6212121;         // the terminal's ground
     public static final int TERM_FG = 0xFFD0D0D0;
 
-    public static final FontDescription MONO = new FontDescription.Resource(
-            Identifier.fromNamespaceAndPath("force_mc", "mono"));
+    /** The pixel sizes there is a font for (scripts/fonts.py): each rasterised at exactly that size. */
+    public static final int[] SIZES = {12, 13, 14, 15, 16, 17, 18, 20, 22, 24};
+    private static final FontDescription[] REGULAR = new FontDescription[SIZES.length];
+    private static final FontDescription[] BOLD = new FontDescription[SIZES.length];
+
+    static {
+        for (int i = 0; i < SIZES.length; i++) {
+            REGULAR[i] = new FontDescription.Resource(Identifier.fromNamespaceAndPath("force_mc", "px_" + SIZES[i]));
+            BOLD[i] = new FontDescription.Resource(Identifier.fromNamespaceAndPath("force_mc", "px_" + SIZES[i] + "_bold"));
+        }
+    }
 
     private Theme() {}
 
-    public static Component mono(String text, Style style) {
-        return Component.literal(text).withStyle(style.withFont(MONO));
+    /** The nearest size there is a font for. */
+    public static int size(int px) {
+        int best = SIZES[0];
+        for (int s : SIZES) if (Math.abs(s - px) < Math.abs(best - px)) best = s;
+        return best;
     }
 
-    public static Component mono(String text) {
-        return mono(text, Style.EMPTY);
+    public static FontDescription font(int px, boolean bold) {
+        int s = size(px);
+        for (int i = 0; i < SIZES.length; i++) if (SIZES[i] == s) return bold ? BOLD[i] : REGULAR[i];
+        return REGULAR[0];
+    }
+
+    public static Component text(String text, int px, boolean bold) {
+        return Component.literal(text).withStyle(Style.EMPTY.withFont(font(px, bold)));
+    }
+
+    public static Component text(String text, int px, Style style, boolean bold) {
+        return Component.literal(text).withStyle(style.withFont(font(px, bold)));
+    }
+
+    /** How far below a line box's top Minecraft's text origin goes for a `px` font (its ascent sits on it). */
+    public static int baseline(int px) {
+        return Math.round(px * 0.12f);
+    }
+
+    /** A line box for `px` text: JetBrains Mono's comfortable 1.3. */
+    public static int line(int px) {
+        return Math.round(px * 1.3f);
     }
 
     /** The state's colour (as the sidebar: unread wins over working, waiting is grey). */

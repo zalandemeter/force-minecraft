@@ -49,6 +49,13 @@ public class ConsoleGameTest implements FabricClientGameTest {
             ctx.waitTicks(20);
             ctx.takeScreenshot("4-switched");
 
+            // an agent at work (the demo's api session): what the terminal is for
+            String api = mod.model().state().live().get(0).address();
+            ctx.runOnClient(mc -> mod.controller().handle(new cc.useforce.mc.core.Intent.Select(api)));
+            ctx.waitFor(mc -> text(mod).contains("4 passed"), 20 * 10);
+            ctx.waitTicks(20);
+            ctx.takeScreenshot("5-agent");
+
             ctx.getInput().pressKey(InputConstants.KEY_F12);
             ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
             if (mod.consoleOpen()) throw new AssertionError("the console key closes the console");

@@ -26,7 +26,43 @@ wrapper.write_text("#!/bin/sh\n" + "".join(f"export {k}='{v}'\n" for k, v in env
                      "sys.exit(cli.main(sys.argv[1:]))' \"$@\"\n")
 wrapper.chmod(0o755)
 
-banner = {"api": "\\e[38;5;173m⚡ demo session api\\e[0m: Claude Code would be here",
+# the api session looks like an agent at work: bullets, a diff, a box, tool output (all made up)
+AGENT = r"""
+\e[38;5;174m╭─────────────────────────────────────────────╮\e[0m
+\e[38;5;174m│\e[0m \e[1m✻ Welcome to the demo agent\e[0m                 \e[38;5;174m│\e[0m
+\e[38;5;174m╰─────────────────────────────────────────────╯\e[0m
+
+\e[1m> \e[0mmake the retry wait grow, and test it
+
+⏺ Reading the retry loop first.
+
+⏺ \e[1mRead\e[0m(src/net/retry.py)
+  ⎿  Read 48 lines
+
+⏺ \e[1mUpdate\e[0m(src/net/retry.py)
+  ⎿  Updated src/net/retry.py with 3 additions and 1 removal
+     \e[2m12\e[0m       for attempt in range(tries):
+     \e[2m13\e[0m           try:
+     \e[2m14\e[0m               return call()
+     \e[2m15\e[0m           except TimeoutError:
+     \e[2m16\e[0m \e[48;5;52m-             time.sleep(1)                 \e[0m
+     \e[2m16\e[0m \e[48;5;22m+             wait = min(30, 2 ** attempt)  \e[0m
+     \e[2m17\e[0m \e[48;5;22m+             log.info(f"retry in {wait} s")\e[0m
+     \e[2m18\e[0m \e[48;5;22m+             time.sleep(wait)              \e[0m
+
+⏺ \e[1mBash\e[0m(pytest -q tests/test_retry.py)
+  ⎿  \e[32m....\e[0m
+     4 passed in 0.31s
+
+⏺ The wait now doubles from 1 s up to 30 s, and every retry is logged.
+  Tests: 4 passed (\e[1mtests/test_retry.py\e[0m).
+
+\e[38;5;244m───────────────────────────────────────────────────────────────────\e[0m
+\e[1m>\e[0m 
+\e[38;5;244m───────────────────────────────────────────────────────────────────\e[0m
+  \e[38;5;179m⏵⏵ auto mode on\e[0m \e[38;5;244m(shift+tab to cycle)\e[0m
+"""
+banner = {"api": AGENT.strip("\n").replace("\n", "\\n"),
           "web": "\\e[1;31m! demo session web\\e[0m wants to run \\e[33mBash(rm -rf build)\\e[0m",
           "docs": "\\e[32m● demo session docs\\e[0m finished: \\e[4m3 files changed\\e[0m"}
 subprocess.run(["tmux", "-L", sock, "kill-server"], capture_output=True)
