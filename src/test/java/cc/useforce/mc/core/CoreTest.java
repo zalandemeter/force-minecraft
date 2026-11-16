@@ -94,17 +94,37 @@ class CoreTest {
 
     @Test
     void keysToTmuxNames() {
-        assertEquals("Enter", Keys.name(257, 0));
-        assertEquals("Escape", Keys.name(256, 0));
-        assertEquals("BTab", Keys.name(258, Keys.SHIFT));
-        assertEquals("C-c", Keys.name(67, Keys.CTRL));
-        assertEquals("M-b", Keys.name(66, Keys.ALT));
-        assertEquals("C-Up", Keys.name(265, Keys.CTRL));
-        assertEquals("S-Up", Keys.name(265, Keys.SHIFT));
-        assertEquals("F5", Keys.name(294, 0));
-        assertEquals("C-Space", Keys.name(32, Keys.CTRL));
-        assertNull(Keys.name(65, 0), "a plain letter comes as typed text");
-        assertNull(Keys.name(65, Keys.SHIFT));
+        Keys k = new Keys(Keys.glfw());
+        assertEquals("Enter", k.name(257, 0));
+        assertEquals("Escape", k.name(256, 0));
+        assertEquals("BTab", k.name(258, 0x1));
+        assertEquals("C-c", k.name(67, 0x2));
+        assertEquals("M-b", k.name(66, 0x4));
+        assertEquals("C-Up", k.name(265, 0x2));
+        assertEquals("S-Up", k.name(265, 0x1));
+        assertEquals("F5", k.name(294, 0));
+        assertEquals("C-Space", k.name(32, 0x2));
+        assertEquals("C-[", k.name(91, 0x2));
+        assertNull(k.name(65, 0), "a plain letter comes as typed text");
+        assertNull(k.name(65, 0x1));
+        assertNull(k.name(32, 0), "a plain space too");
+    }
+
+    /** Minecraft 26.3's SDL codes and modifier masks (left|right bits) work the same through a table. */
+    @Test
+    void keysWithSdlCodes() {
+        var named = new java.util.HashMap<Integer, String>();
+        named.put(41, "Escape");
+        named.put(81, "Down");
+        var chars = new java.util.HashMap<Integer, Character>();
+        chars.put(6, 'c');
+        Keys k = new Keys(new Keys.Table(named, chars, 3, 192, 768));
+        assertEquals("C-c", k.name(6, 0x40), "left Ctrl");
+        assertEquals("C-c", k.name(6, 0x80), "right Ctrl");
+        assertEquals("M-c", k.name(6, 0x200));
+        assertEquals("S-Down", k.name(81, 0x2));
+        assertEquals("Escape", k.name(41, 0));
+        assertNull(k.name(6, 0));
     }
 
     /** A fake `force api`: answers hello/subscribe/terminal.open, then sends a state and a screen. */

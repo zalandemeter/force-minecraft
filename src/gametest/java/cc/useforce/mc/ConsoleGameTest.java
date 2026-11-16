@@ -6,7 +6,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.input.KeyEvent;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 /**
  * The real client against a demo Force (scripts/demo_force.py, started by scripts/gametest.sh): the list on the
@@ -24,14 +24,14 @@ public class ConsoleGameTest implements FabricClientGameTest {
             ctx.waitTicks(10);
             ctx.takeScreenshot("1-game-screen-list");
 
-            ctx.getInput().pressKey(GLFW.GLFW_KEY_F12);
+            ctx.getInput().pressKey(InputConstants.KEY_F12);
             ctx.waitForScreen(ConsoleScreen.class);
             ctx.waitFor(mc -> text(mod).contains("demo session"), 20 * 15);
             ctx.waitTicks(5);
             ctx.takeScreenshot("2-console");
 
             ctx.getInput().typeChars("echo hello from minecraft");
-            ctx.getInput().pressKey(GLFW.GLFW_KEY_ENTER);
+            ctx.getInput().pressKey(InputConstants.KEY_RETURN);
             ctx.waitFor(mc -> text(mod).contains("hello from minecraft\n") || count(text(mod), "hello from minecraft") >= 2,
                     20 * 15);
             ctx.waitTicks(5);
@@ -41,12 +41,12 @@ public class ConsoleGameTest implements FabricClientGameTest {
             // Ctrl+Shift+Down: the test input sends no modifiers (Fabric's TestInput passes 0), so the key event goes
             // to the console's own handler as GLFW would deliver it
             ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
-                    new KeyEvent(GLFW.GLFW_KEY_DOWN, 0, GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SHIFT)));
+                    new KeyEvent(InputConstants.KEY_DOWN, 0, InputConstants.MOD_CONTROL | InputConstants.MOD_SHIFT)));
             ctx.waitFor(mc -> mod.terminal().address() != null && !mod.terminal().address().equals(before), 20 * 10);
             ctx.waitTicks(20);
             ctx.takeScreenshot("4-switched");
 
-            ctx.getInput().pressKey(GLFW.GLFW_KEY_F12);
+            ctx.getInput().pressKey(InputConstants.KEY_F12);
             ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
             if (mod.consoleOpen()) throw new AssertionError("the console key closes the console");
         }

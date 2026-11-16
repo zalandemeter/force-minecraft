@@ -8,6 +8,7 @@ import cc.useforce.mc.ui.Panel;
 import cc.useforce.mc.ui.SessionList;
 import cc.useforce.mc.ui.TerminalView;
 import cc.useforce.mc.ui.Theme;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
@@ -27,6 +28,7 @@ public final class ConsoleScreen extends Screen {
     private final SessionList list = new SessionList();
     private final TerminalView view = new TerminalView();
     private final StringBuilder typed = new StringBuilder();
+    private final Keys keys = new Keys(KeyTable.create());
     private int lx, ly, lw, lh, tx, ty, tw, th;
 
     ConsoleScreen(ForceClient mod) {
@@ -95,12 +97,13 @@ public final class ConsoleScreen extends Screen {
             return true;
         }
         int mods = e.modifiers();
-        if ((mods & Keys.CTRL) != 0 && (mods & Keys.SHIFT) != 0 && (e.key() == 265 || e.key() == 264)) {
+        boolean up = e.key() == InputConstants.KEY_UP, down = e.key() == InputConstants.KEY_DOWN;
+        if (keys.ctrl(mods) && keys.shift(mods) && (up || down)) {
             flushTyped();
-            mod.controller().handle(new Intent.Step(e.key() == 265 ? -1 : 1));
+            mod.controller().handle(new Intent.Step(up ? -1 : 1));
             return true;
         }
-        String name = Keys.name(e.key(), mods);
+        String name = keys.name(e.key(), mods);
         if (name != null) {
             flushTyped();
             mod.controller().handle(new Intent.Keys(List.of(name)));

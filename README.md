@@ -53,6 +53,11 @@ The mod follows the newest release (not beta) of Fabulously Optimized:
 | Fabric API | 0.161.0+26.2 |
 | Java | 25 |
 
+It also builds for Minecraft 26.3 (Fabulously Optimized 15 beta) from the same code:
+`./gradlew build -Pminecraft_version=26.3 -Pfabric_api_version=0.166.2+26.3 -Pversion=0.1.0+26.3`. Minecraft 26.3
+moved its input from GLFW to SDL (other key codes and modifier bits), so the keys go through `KeyTable`, built from
+Minecraft's own `InputConstants`.
+
 ## Architecture
 
 Built so the UI, the gestures and the terminal technology can change one at a time.

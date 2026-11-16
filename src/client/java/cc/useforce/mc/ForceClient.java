@@ -18,7 +18,6 @@ import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Wiring: config, the `force api` supervisor, the model, the terminal backend, the controller, and the Minecraft
@@ -55,8 +54,8 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         supervisor.start();
 
         KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("force_mc", "force"));
-        consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.console", GLFW.GLFW_KEY_F12, cat));
-        hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.hud", GLFW.GLFW_KEY_F10, cat));
+        consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.console", InputConstants.KEY_F12, cat));
+        hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.hud", InputConstants.KEY_F10, cat));
         attentionKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.force_mc.attention", InputConstants.UNKNOWN.getValue(), cat));
 
