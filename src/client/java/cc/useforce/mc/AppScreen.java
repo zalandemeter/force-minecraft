@@ -88,7 +88,7 @@ public final class AppScreen extends Screen {
     public boolean keyPressed(KeyEvent e) {
         int mods = e.modifiers();
         if (mod.isConsoleKey(e) || (e.key() == InputConstants.KEY_ESCAPE && !keys.ctrl(mods) && !keys.alt(mods)
-                && !keys.shift(mods))) {
+                && !keys.shift(mods))) {                                                   // F12, Esc
             mod.controller().handle(new cc.useforce.mc.core.Intent.CloseConsole());
             return true;
         }

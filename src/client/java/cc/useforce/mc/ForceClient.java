@@ -42,6 +42,7 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     private boolean hudVisible;
     private net.minecraft.client.gui.screens.Screen console;     // AppScreen or ConsoleScreen while shown
     private boolean wasActive = true;
+    private boolean shiftTabDown;                     // Shift+Tab was down on the last tick (opens once per press)
 
     @Override
     public void onInitializeClient() {
@@ -71,6 +72,11 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
 
     private void tick(Minecraft mc) {
         while (consoleKey.consumeClick()) controller.handle(new Intent.ToggleConsole());
+        // Shift+Tab in the game opens Force too (a key binding cannot say Shift+Tab: Tab is the player list). Inside
+        // Force it is the session's own key (Claude Code's mode cycle); only F12 and Esc hide it
+        boolean down = mc.options.keyPlayerList.isDown() && mc.hasShiftDown();
+        if (down && !shiftTabDown && mc.gui.screen() == null) controller.handle(new Intent.OpenConsole());
+        shiftTabDown = down;
         while (hudKey.consumeClick()) controller.handle(new Intent.ToggleHud());
         while (attentionKey.consumeClick()) {
             controller.handle(new Intent.NextAttention());

@@ -27,6 +27,7 @@ Force: the hosts you added with `force host add`, the states, the order and the 
 | Key | |
 |---|---|
 | `F12` | show / hide Force: the whole app, full screen. Every other key goes to Force, Ctrl+Space included; Ctrl+Shift+V pastes |
+| `Shift+Tab` | in the game: shows it too (inside Force it is the session's own key, e.g. Claude Code's mode cycle) |
 | `Esc` | hides it too (Ctrl+[ is Esc for Force: it closes Force's menus and interrupts an agent) |
 | `F10` | show / hide the session list on the game screen: only the sessions with something going on (needs you, working, your turn, unread), host by host |
 | (unbound) | jump to the next session that needs you, in the session view |

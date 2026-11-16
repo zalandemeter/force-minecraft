@@ -106,7 +106,7 @@ public final class ConsoleScreen extends Screen {
     public boolean keyPressed(KeyEvent e) {
         int mods = e.modifiers();
         if (mod.isConsoleKey(e) || (e.key() == InputConstants.KEY_ESCAPE && !keys.ctrl(mods) && !keys.alt(mods)
-                && !keys.shift(mods))) {
+                && !keys.shift(mods))) {                                                   // F12, Esc
             flushTyped();
             mod.controller().handle(new Intent.CloseConsole());
             return true;
