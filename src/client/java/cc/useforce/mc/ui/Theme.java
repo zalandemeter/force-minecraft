@@ -1,0 +1,73 @@
+package cc.useforce.mc.ui;
+
+import cc.useforce.mc.core.ForceModel;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+
+/** Force's own colours (its terminal theme) and the glass panels, in one place: a restyle is an edit here. */
+public final class Theme {
+    public static final int PANEL = 0xB8141414;           // the glass: Force's ground, see-through
+    public static final int PANEL_EDGE = 0x33FFFFFF;
+    public static final int RAISED = 0xCC2C2C2C;          // the selected card
+    public static final int TEXT = 0xFFF2F2F2;
+    public static final int SOFT = 0xFFC6C6C6;
+    public static final int DIM = 0xFF8A8A8A;
+    public static final int CORAL = 0xFFD97757;           // the Force mark
+    public static final int RED = 0xFFF0645E;             // needs you
+    public static final int AMBER = 0xFFD7AF5F;           // working
+    public static final int GREEN = 0xFF87C08F;           // your turn
+    public static final int BLUE = 0xFFA8C7FA;            // unread: a finding to read
+    public static final int TERM_BG = 0xE6212121;         // the terminal's ground
+    public static final int TERM_FG = 0xFFD0D0D0;
+
+    public static final FontDescription MONO = new FontDescription.Resource(
+            Identifier.fromNamespaceAndPath("force_mc", "mono"));
+
+    private Theme() {}
+
+    public static Component mono(String text, Style style) {
+        return Component.literal(text).withStyle(style.withFont(MONO));
+    }
+
+    public static Component mono(String text) {
+        return mono(text, Style.EMPTY);
+    }
+
+    /** The state's colour (as the sidebar: unread wins over working, waiting is grey). */
+    public static int color(ForceModel.Session s) {
+        if (s.unread()) return BLUE;
+        if (s.watching()) return DIM;
+        return switch (s.state()) {
+            case "needs-you" -> RED;
+            case "working" -> AMBER;
+            case "your-turn" -> GREEN;
+            default -> DIM;
+        };
+    }
+
+    /** The state's glyph (in the mono font, which has them all). */
+    public static String glyph(ForceModel.Session s, long nowMs) {
+        if (s.watching()) return "◷";
+        return switch (s.state()) {
+            case "needs-you" -> "!";
+            case "working" -> String.valueOf("◐◓◑◒".charAt((int) ((nowMs / 150) % 4)));
+            case "your-turn" -> "●";
+            case "idle" -> "○";
+            case "stale" -> "◌";
+            case "down" -> "×";
+            default -> "·";
+        };
+    }
+
+    public static String label(ForceModel.Session s) {
+        if (s.note() != null) return s.note();
+        if (s.watching()) return "waiting";
+        return switch (s.state()) {
+            case "needs-you" -> "needs you";
+            case "your-turn" -> "your turn";
+            default -> s.state();
+        };
+    }
+}
