@@ -31,8 +31,8 @@ import static org.lwjgl.util.freetype.FreeType.*;
  * library of our own is used by the render thread only, with light auto-hinting, which never runs that interpreter.
  * JetBrains Mono (regular, bold) first, then Force's icons (a Nerd Fonts symbols subset), DejaVu Sans Mono and
  * DejaVu Sans for what is left. Emoji come in colour from the system's emoji font (the one a terminal uses: Noto
- * Color Emoji on Linux), as a terminal draws them: those no text font has, those marked with VS16 (⚠️), and the
- * pictographs from U+1F000 on.
+ * Color Emoji on Linux), else the bundled Noto Color Emoji, as a terminal draws them: those no text font has, those
+ * marked with VS16 (⚠️), and the pictographs from U+1F000 on.
  */
 public final class GlyphAtlas {
     private static final int PAGE = 1024;
@@ -48,6 +48,9 @@ public final class GlyphAtlas {
             this(page, u, v, w, h, left, top, advance, false);
         }
     }
+
+    /** Noto Color Emoji, in the mod: used when the system has no colour emoji font. */
+    private static final String BUNDLED_EMOJI = "noto-color-emoji.ttf";
 
     /** Where systems keep their colour emoji font, after the one fontconfig names. */
     private static final String[] EMOJI_FONTS = {
@@ -228,7 +231,15 @@ public final class GlyphAtlas {
                 }
             }
         }
-        System.err.println("force_mc: no colour emoji font (install Noto Color Emoji): emoji are drawn as boxes");
+        try (MemoryStack stack = MemoryStack.stackPush()) {        // none on the system: the bundled one
+            FT_Face f = face(BUNDLED_EMOJI, stack);
+            if (FT_HAS_COLOR(f)) {
+                emoji = f;
+                return f;
+            }
+        } catch (IOException | RuntimeException e) {
+            System.err.println("force_mc: no colour emoji font: emoji are drawn as boxes (" + e + ")");
+        }
         return null;
     }
 

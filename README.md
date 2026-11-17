@@ -41,8 +41,8 @@ game keeps running. The app starts hidden as soon as Force is connected and stay
 it is as you left it (its host, its session). Hidden, Force does not count the session it shows as viewed, so you
 still get its toasts while you play.
 
-Emoji are drawn in colour from the system's emoji font, as a terminal draws them (Noto Color Emoji on Linux:
-`fonts-noto-color-emoji` on Debian and Ubuntu, `noto-fonts-emoji` on Arch); without one they show as boxes.
+Emoji are drawn in colour, as a terminal draws them: from the system's emoji font (so they look as in your
+terminal), else from the Noto Color Emoji the mod brings.
 
 ### Settings
 
@@ -145,4 +145,5 @@ as lines and blocks that meet across cells, as terminals do.
 ## Licence
 
 MIT. Fonts in `assets/force_mc/fonts/`: JetBrains Mono (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans
-(Bitstream Vera licence), and a subset of Nerd Fonts Symbols (MIT) with Force's icons.
+(Bitstream Vera licence), a subset of Nerd Fonts Symbols (MIT) with Force's icons, and Noto Color Emoji (SIL Open
+Font License; googlefonts/noto-emoji v2026-09-24-unicode18_0).
