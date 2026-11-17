@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -34,6 +35,9 @@ public final class ApiConnection {
         OutputStream out();
         void close();
         boolean alive();
+
+        /** The process's exit code once it has ended (waiting up to half a second), else -1. */
+        default int exitCode() { return -1; }
     }
 
     public static Transport process(List<String> command) throws IOException {
@@ -43,6 +47,14 @@ public final class ApiConnection {
             public OutputStream out() { return p.getOutputStream(); }
             public void close() { p.destroy(); }
             public boolean alive() { return p.isAlive(); }
+            public int exitCode() {
+                try {
+                    return p.waitFor(500, TimeUnit.MILLISECONDS) ? p.exitValue() : -1;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return -1;
+                }
+            }
         };
     }
 

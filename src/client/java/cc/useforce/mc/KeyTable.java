@@ -50,6 +50,7 @@ final class KeyTable {
         c.put(InputConstants.KEY_BACKSLASH, '\\');
         c.put(InputConstants.KEY_SLASH, '/');
         c.put(InputConstants.KEY_MINUS, '-');
-        return new Keys.Table(n, c, InputConstants.MOD_SHIFT, InputConstants.MOD_CONTROL, InputConstants.MOD_ALT);
+        return new Keys.Table(n, c, InputConstants.MOD_SHIFT, InputConstants.MOD_CONTROL, InputConstants.MOD_ALT,
+                InputConstants.MOD_SUPER);
     }
 }

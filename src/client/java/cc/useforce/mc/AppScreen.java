@@ -2,6 +2,7 @@ package cc.useforce.mc;
 
 import cc.useforce.mc.core.AppTerminal;
 import cc.useforce.mc.core.Keys;
+import cc.useforce.mc.core.Os;
 import cc.useforce.mc.core.TerminalBuffer;
 import cc.useforce.mc.core.Vt;
 import cc.useforce.mc.core.VtInput;
@@ -21,10 +22,10 @@ import net.minecraft.network.chat.Component;
 /**
  * The whole Force app, full screen, over the running game (it never pauses): the same program a terminal runs
  * (Force SPEC §54 vt mode), drawn by the mod's renderer on blurred glass. Every key goes to Force, Esc and Ctrl+Space
- * included; the console key (F12, or the combination set in Controls) hides it; Ctrl+Shift+V pastes; the mouse works
- * where Force asks for it (its sidebar, header and menus are clickable, the wheel scrolls). Hidden, the app keeps
- * running: it comes back at once, as it was (its host, its session, its menus). The settings screen sets how solid the
- * glass is, the blur and the padding.
+ * included; the console key (F12, or the combination set in Controls) hides it; Ctrl+Shift+V pastes (Cmd+V on macOS);
+ * the mouse works where Force asks for it (its sidebar, header and menus are clickable, the wheel scrolls). Hidden,
+ * the app keeps running: it comes back at once, as it was (its host, its session, its menus). The settings screen
+ * sets how solid the glass is, the blur and the padding.
  */
 public final class AppScreen extends Screen implements Blur {
     private final ForceClient mod;
@@ -106,7 +107,7 @@ public final class AppScreen extends Screen implements Blur {
         if (problem != null && s.cols() == 0) c.text(problem, ox, oy, px, Theme.RED, false);
         else view.draw(c, ox, oy, grid.cols() * cw, grid.rows() * ch, s, px, true);
         if (problem != null && s.cols() > 0) c.text(problem, ox, oy + grid.rows() * ch - ch, px, Theme.RED, false);
-        LinkHover.draw(c, s, grid(), px, mx * scale, my * scale);   // the link under the mouse: Ctrl+click opens it
+        LinkHover.draw(c, s, grid(), px, mx * scale, my * scale);   // the link under the mouse
         c.end();
     }
 
@@ -120,7 +121,9 @@ public final class AppScreen extends Screen implements Blur {
             return true;
         }
         Vt vt = mod.app().vt();
-        if (keys.ctrl(mods) && keys.shift(mods) && e.key() == InputConstants.KEY_V) {
+        if (keys.ctrl(mods) && keys.shift(mods) && e.key() == InputConstants.KEY_V
+                || Os.CURRENT == Os.Kind.MAC && keys.cmd(mods) && !keys.ctrl(mods)
+                && e.key() == InputConstants.KEY_V) {
             String clip = minecraft.keyboardHandler.getClipboard();
             flushTyped();
             if (clip != null && !clip.isEmpty())
@@ -173,7 +176,8 @@ public final class AppScreen extends Screen implements Blur {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
-        if (e.button() == InputConstants.MOUSE_BUTTON_LEFT && keys.ctrl(e.modifiers())) {   // Ctrl+click: a link opens
+        if (e.button() == InputConstants.MOUSE_BUTTON_LEFT
+                && LinkHover.opens(keys, e.modifiers())) {   // Ctrl+click (Cmd+click on macOS) opens a link
             if (LinkHover.click(mod.app().snapshot(), grid(), e.x() * scale, e.y() * scale)) return true;
         }
         held = xtermButton(e.button());
