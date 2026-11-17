@@ -134,6 +134,9 @@ public class ConsoleGameTest implements FabricClientGameTest {
     private static void app(ClientGameTestContext ctx, ForceClient mod) {
         // the app started hidden as soon as Force was connected: the first F12 shows it at once
         ctx.waitFor(mc -> mod.app().open(), 20 * 10);
+        // the text size of the README's pictures: in this 1600x900 window, full-size text leaves Force too few
+        // columns for its full sidebar (it folds into the icon rail), and the checks below read the session names
+        ctx.runOnClient(mc -> mod.config().textScale = 0.75);
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitForScreen(AppScreen.class);
         // Force's own ui: its sidebar lists the sessions, its main pane shows one of them
