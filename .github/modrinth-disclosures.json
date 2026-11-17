@@ -1,0 +1,22 @@
+{
+  "set": [
+    {
+      "type": "ai_content",
+      "uses": ["code", "text"],
+      "note": "The code and the text were written with the help of AI coding agents. The work was human-driven throughout: a person directed it and evaluated, tested, reviewed and revised all of it."
+    },
+    {
+      "type": "system_interactions",
+      "note": "The mod is a window onto Force, a program you install on your computer yourself. It talks only to that Force: nothing is sent anywhere else.",
+      "interactions": [
+        "Starts Force's frontend API (force api, through wsl.exe on Windows) on your computer and talks to it over its standard input and output",
+        "Opens a web link in your browser when you Ctrl+click it (Cmd+click on macOS)"
+      ]
+    },
+    {
+      "type": "ai_functionality",
+      "note": "It shows the coding agents (such as Claude Code, Codex or OpenCode) that you run in Force, and lets you answer them. The mod runs no AI model itself."
+    }
+  ],
+  "remove": []
+}
