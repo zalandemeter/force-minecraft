@@ -90,6 +90,37 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.waitFor(mc -> count(text(mod.terminal().buffer().snapshot()), "hello from minecraft") >= 2, 20 * 15);
         ctx.waitTicks(5);
         ctx.takeScreenshot("2-session-view");
+        // a web link in the session view: Ctrl+click opens it (and picks nothing in the list)
+        ctx.getInput().typeChars("echo see https://useforce.cc/docs.");
+        ctx.getInput().pressKey(InputConstants.KEY_RETURN);
+        ctx.waitFor(mc -> count(text(mod.terminal().buffer().snapshot()), "https://useforce.cc/docs") >= 2, 20 * 15);
+        ctx.waitTicks(2);
+        double[] link = ctx.computeOnClient(mc -> {
+            var s = mod.terminal().buffer().snapshot();
+            var g = ((ConsoleScreen) mc.gui.screen()).linkGrid();
+            for (int r = s.rows() - 1; r >= 0 && g != null; r--) {
+                String cells = cc.useforce.mc.core.Links.cells(s.lines().get(r));
+                int i = cells.indexOf("see https://useforce.cc/docs");
+                if (i < 0 || cells.contains("echo ")) continue;
+                var l = cc.useforce.mc.core.Links.at(s, r, i + 8);
+                if (l == null || !l.url().equals("https://useforce.cc/docs"))
+                    throw new AssertionError("session view link: " + l + " in " + cells);
+                return new double[]{g.x() + (i + 8.5) * g.cw(), g.y() + (r + 0.5) * g.ch(), mc.getWindow().getGuiScale()};
+            }
+            throw new AssertionError("no link in the session view:\n" + text(s));
+        });
+        ctx.getInput().setCursorPos(link[0], link[1]);
+        ctx.waitTicks(5);
+        ctx.takeScreenshot("2a-session-link-hover");
+        ctx.runOnClient(mc -> {
+            String picked = mod.terminal().address();
+            boolean took = mc.gui.screen().mouseClicked(new net.minecraft.client.input.MouseButtonEvent(link[0] / link[2],
+                    link[1] / link[2], new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,
+                    InputConstants.MOD_CONTROL)), false);
+            if (!took || !(mc.gui.screen() instanceof ConsoleScreen) || !java.util.Objects.equals(picked, mod.terminal().address()))
+                throw new AssertionError("Ctrl+click on a link in the session view");
+        });
+        ctx.getInput().setCursorPos(2, 2);
         String before = mod.terminal().address();
         // Ctrl+Shift+Down: Fabric's test input sends no modifiers, so the event goes to the handler as GLFW/SDL would
         ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
@@ -129,22 +160,7 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.getInput().typeChars("echo see https://useforce.cc/docs.");
         ctx.getInput().pressKey(InputConstants.KEY_RETURN);
         ctx.waitFor(mc -> count(text(mod.app().snapshot()), "https://useforce.cc/docs") >= 2, 20 * 15);
-        double[] at = ctx.computeOnClient(mc -> {
-            var s = mod.app().snapshot();
-            for (int r = s.rows() - 1; r >= 0; r--) {
-                String cells = cc.useforce.mc.core.Links.cells(s.lines().get(r));
-                int i = cells.indexOf("https://useforce.cc/docs");
-                if (i < 0) continue;
-                var l = cc.useforce.mc.core.Links.at(cells, r, i + 3);
-                if (l == null || !l.url().equals("https://useforce.cc/docs"))
-                    throw new AssertionError("link: " + l + " in " + cells);
-                var w = mc.getWindow();
-                var lay = AppScreen.layout(mod.config(), w.getGuiScale(), w.getWidth(), w.getHeight());
-                return new double[]{lay.x() + (i + 4) * lay.cw() + lay.cw() / 2.0, lay.y() + r * lay.ch() + lay.ch() / 2.0,
-                        w.getGuiScale()};
-            }
-            throw new AssertionError("no link on screen");
-        });
+        double[] at = appPoint(ctx, mod, "see https://useforce.cc/docs", 8, "https://useforce.cc/docs", false);
         ctx.getInput().setCursorPos(at[0], at[1]);
         ctx.waitTicks(5);
         ctx.takeScreenshot("4a-app-link-hover");
@@ -154,6 +170,23 @@ public class ConsoleGameTest implements FabricClientGameTest {
                     InputConstants.MOD_CONTROL)), false);
             if (!took || !(mc.gui.screen() instanceof AppScreen)) throw new AssertionError("Ctrl+click on a link");
         });
+        // a link the shell wraps onto the next lines is one link: hovered on its second line, the whole address
+        String longUrl = "https://useforce.cc/wrap/" + "0123456789".repeat(22) + "/end";
+        ctx.getInput().typeChars("echo " + longUrl);
+        ctx.getInput().pressKey(InputConstants.KEY_RETURN);
+        ctx.waitFor(mc -> count(text(mod.app().snapshot()), "/end") >= 2, 20 * 15);
+        double[] wrapped = appPoint(ctx, mod, "https://useforce.cc/wrap/", -1, longUrl, false);
+        ctx.getInput().setCursorPos(wrapped[0], wrapped[1]);
+        ctx.waitTicks(5);
+        ctx.takeScreenshot("4b-app-wrapped-link-hover");
+        // a link the program names itself (OSC 8, as Claude Code prints them), through Force's tmux: its address
+        ctx.getInput().typeChars("printf '\\e]8;;https://useforce.cc/named\\e\\\\the docs\\e]8;;\\e\\\\\\n'");
+        ctx.getInput().pressKey(InputConstants.KEY_RETURN);
+        ctx.waitFor(mc -> count(text(mod.app().snapshot()), "the docs") >= 2, 20 * 15);
+        double[] named = appPoint(ctx, mod, "the docs", 2, "https://useforce.cc/named", true);
+        ctx.getInput().setCursorPos(named[0], named[1]);
+        ctx.waitTicks(5);
+        ctx.takeScreenshot("4c-app-named-link-hover");
         ctx.getInput().setCursorPos(2, 2);
 
         // Ctrl+Space: Force's menu (the test input has no modifiers: the event goes to the screen as SDL/GLFW sends it)
@@ -294,6 +327,33 @@ public class ConsoleGameTest implements FabricClientGameTest {
             System.err.println("APP SCREEN " + name + ":\n" + text(mod.app().snapshot()));
             throw e;
         }
+    }
+
+    /**
+     * Where on the window (pixels; and the GUI scale) a link in the app is: the last line of output (not the command)
+     * with `start`, `dx` cells into it, or, with dx < 0, the first cell of the line below it (a wrapped link's
+     * second line). The link there must be `url`, named by the program (OSC 8) or not as `marked` says.
+     */
+    private static double[] appPoint(ClientGameTestContext ctx, ForceClient mod, String start, int dx, String url,
+                                     boolean marked) {
+        return ctx.computeOnClient(mc -> {
+            var s = mod.app().snapshot();
+            for (int r = s.rows() - 1; r >= 0; r--) {
+                String cells = cc.useforce.mc.core.Links.cells(s.lines().get(r));
+                int i = cells.indexOf(start);
+                if (i < 0 || cells.contains("echo ") || cells.contains("printf ")) continue;   // the output, not the command
+                int row = dx < 0 ? r + 1 : r, col = dx < 0 ? i : i + dx;
+                var l = cc.useforce.mc.core.Links.at(s, row, col);
+                if (l == null || !l.url().equals(url) || l.marked() != marked)
+                    throw new AssertionError("link at " + row + "," + col + ": " + l + "\n" + text(s));
+                if (dx < 0 && l.spans().size() < 2) throw new AssertionError("not joined: " + l);
+                var w = mc.getWindow();
+                var lay = AppScreen.layout(mod.config(), w.getGuiScale(), w.getWidth(), w.getHeight());
+                return new double[]{lay.x() + col * lay.cw() + lay.cw() / 2.0, lay.y() + row * lay.ch() + lay.ch() / 2.0,
+                        w.getGuiScale()};
+            }
+            throw new AssertionError("no '" + start + "' on screen:\n" + text(s));
+        });
     }
 
     private static String text(TerminalBuffer.Snapshot s) {

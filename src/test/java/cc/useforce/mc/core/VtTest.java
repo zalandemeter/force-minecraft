@@ -172,6 +172,71 @@ class VtTest {
     }
 
     @Test
+    void osc8Hyperlinks() {
+        Vt vt = vt(30, 1);
+        vt.feed("\033]8;;https://x.y/z\033\\label\033]8;;\033\\ rest".getBytes(StandardCharsets.UTF_8));
+        var runs = vt.snapshot().lines().get(0);
+        assertEquals("label", runs.get(0).text());
+        assertEquals("https://x.y/z", runs.get(0).link());
+        assertNull(runs.get(1).link(), "the text after the link has no link");
+        assertTrue(runs.get(1).text().startsWith(" rest"));
+    }
+
+    @Test
+    void osc8WithBellAndParamsTerminators() {
+        Vt vt1 = vt(30, 1);
+        vt1.feed("\033]8;;https://x.y/z\007label\033]8;;\007 rest".getBytes(StandardCharsets.UTF_8));
+        var r1 = vt1.snapshot().lines().get(0);
+        assertEquals("https://x.y/z", r1.get(0).link());
+        assertNull(r1.get(1).link());
+        Vt vt2 = vt(30, 1);
+        vt2.feed("\033]8;id=a;https://x.y/z\033\\label\033]8;;\033\\ rest".getBytes(StandardCharsets.UTF_8));
+        var r2 = vt2.snapshot().lines().get(0);
+        assertEquals("https://x.y/z", r2.get(0).link());
+        assertNull(r2.get(1).link());
+    }
+
+    @Test
+    void aWideCharacterInsideALinkCarriesIt() {
+        Vt vt = vt(20, 1);
+        vt.feed("\033]8;;https://x.y/z\033\\✅abc\033]8;;\033\\ rest".getBytes(StandardCharsets.UTF_8));
+        var runs = vt.snapshot().lines().get(0);
+        assertEquals("✅\u0000abc", runs.get(0).text());
+        assertEquals("https://x.y/z", runs.get(0).link());
+        assertNull(runs.get(1).link());
+    }
+
+    @Test
+    void erasingARowRemovesItsLinks() {
+        Vt vt = vt(20, 1);
+        vt.feed("\033]8;;https://x.y/z\033\\abc\033[2Kz".getBytes(StandardCharsets.UTF_8));
+        assertNull(vt.snapshot().lines().get(0).get(0).link());
+    }
+
+    @Test
+    void aHugeOsc8UriIsIgnoredAndParsingRecovers() {
+        Vt vt = vt(20, 1);
+        String longUri = "https://x.y/" + "a".repeat(10_000);
+        vt.feed(("\033]8;;" + longUri + "\033\\x\033]10;?\033\\").getBytes(StandardCharsets.UTF_8));
+        assertNull(vt.snapshot().lines().get(0).get(0).link());
+        assertEquals("\033]10;rgb:d0d0/d0d0/d0d0\033\\", replies(), "the next OSC still works");
+    }
+
+    @Test
+    void risClearsAnOpenLink() {
+        Vt vt = vt(10, 1);
+        vt.feed("\033]8;;https://x.y/z\033\\a\033cb".getBytes(StandardCharsets.UTF_8));
+        assertNull(vt.snapshot().lines().get(0).get(0).link());
+    }
+
+    @Test
+    void osc8Utf8UriRoundTrips() {
+        Vt vt = vt(20, 1);
+        vt.feed(("\033]8;;https://x.y/é\033\\x\033]8;;\033\\").getBytes(StandardCharsets.UTF_8));
+        assertEquals("https://x.y/é", vt.snapshot().lines().get(0).get(0).link());
+    }
+
+    @Test
     void resizeKeepsTheTopLeft() {
         Vt vt = vt(4, 2);
         feed(vt, "abcd\r\nefgh");

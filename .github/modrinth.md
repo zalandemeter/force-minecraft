@@ -1,8 +1,8 @@
 ![Force](https://raw.githubusercontent.com/zalandemeter/force-minecraft/main/.github/assets/banner.webp)
 
 **Your coding agents, inside Minecraft.** Press F12 and [Force](https://useforce.cc), the code cockpit, opens over the
-game: every Claude Code, OpenCode and shell session you run, on this machine and your servers. Answer the one that
-needs you, then go back to playing.
+game: every coding agent and shell session you run, on this machine and your servers. Answer the one that needs you,
+then go back to playing.
 
 ![Force's cockpit on F12 over a Minecraft world](https://raw.githubusercontent.com/zalandemeter/force-minecraft/main/.github/assets/app.webp)
 
@@ -28,7 +28,8 @@ talks only to the Force on your computer: nothing is sent anywhere else. Tested 
   needs you, working, your turn, unread. They are grouped by machine.
 - **A toast when it's your turn.** When a session asks for permission, finishes or stops, a toast tells you which
   one.
-- **Looks like your terminal.** Box lines that join up, Force's icons, and emoji in colour.
+- **Looks like your terminal.** Box lines that join up, Force's icons, and emoji in colour. Links open in your
+  browser with Ctrl+click.
 - **Yours to arrange.** Glass opacity, padding, blur, text size, and where the list sits: F10, or Mods → Force →
   Configure with Mod Menu. Every key can be a combination, set in Controls → Key Binds → Force.
 

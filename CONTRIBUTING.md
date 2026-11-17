@@ -69,12 +69,14 @@ src/main/java/cc/useforce/mc/core/      plain Java, no Minecraft (unit-tested)
   TerminalBuffer                        the screen both fill: the only thing the view draws
   Intent, Controller                    what the player wants, from any gesture; carried out in one place
   Keys, Widths                          key names as tmux knows them; character widths as tmux counts them
-  Links                                 web links on a screen, as terminals find them (Ctrl+click opens one)
+  Links                                 web links on a screen: those programs name (OSC 8), and addresses in
+                                        the text, joined when they wrap onto the next line
 src/client/java/cc/useforce/mc/         Minecraft
   ui/Theme, Panel                       Force's colours and the glass panels
   ui/SessionList, ui/TerminalView       widgets: draw a model / a buffer, answer "what is here"
   ui/GlyphAtlas, ui/BoxDraw             the text renderer (below), box lines
   Hud, AppScreen, ConsoleScreen         layouts: the game screen; the whole app; the session view
+  LinkHover, OpenLink                   a link under the mouse is underlined; Ctrl+click opens it (http/https)
   Config, SettingsScreen, ModMenuEntry  the settings: the file, the screen (Minecraft's option widgets), Mod Menu
   ComboKey, mixin/KeyBindsScreenMixin   key bindings that can be combinations, set in Controls → Key Binds
   ForceClient                           wiring: key bindings, toasts, the layouts, the controller

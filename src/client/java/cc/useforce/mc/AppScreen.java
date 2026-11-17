@@ -2,7 +2,6 @@ package cc.useforce.mc;
 
 import cc.useforce.mc.core.AppTerminal;
 import cc.useforce.mc.core.Keys;
-import cc.useforce.mc.core.Links;
 import cc.useforce.mc.core.TerminalBuffer;
 import cc.useforce.mc.core.Vt;
 import cc.useforce.mc.core.VtInput;
@@ -34,7 +33,6 @@ public final class AppScreen extends Screen implements Blur {
     private final StringBuilder typed = new StringBuilder();
     private int scale = 1, px = 16, ox, oy, cw = 1, ch = 1;
     private int held = -1;                             // the xterm button held down, for drags
-    private Links.Link hover;                          // the web link under the mouse: Ctrl+click opens it
 
     AppScreen(ForceClient mod) {
         super(Component.translatable("force_mc.console.title"));
@@ -108,16 +106,7 @@ public final class AppScreen extends Screen implements Blur {
         if (problem != null && s.cols() == 0) c.text(problem, ox, oy, px, Theme.RED, false);
         else view.draw(c, ox, oy, grid.cols() * cw, grid.rows() * ch, s, px, true);
         if (problem != null && s.cols() > 0) c.text(problem, ox, oy + grid.rows() * ch - ch, px, Theme.RED, false);
-        hover = link(s, mx, my);
-        if (hover != null) {                           // underlined, with how to open it beside the mouse
-            int y = oy + hover.row() * ch + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12);
-            c.fill(ox + hover.start() * cw, y, (hover.end() - hover.start()) * cw, Math.max(1, px / 14), Theme.BLUE);
-            String hint = "Ctrl+click to open";
-            int hpx = Math.max(12, px * 3 / 4), hw = c.textWidth(hint, hpx, false) + hpx, hh = Theme.line(hpx) + hpx / 3;
-            int hx = Math.min(mx * scale + px, c.width() - hw - 2), hy = Math.min(my * scale + px, c.height() - hh - 2);
-            Panel.draw(c, hx, hy, hw, hh);
-            c.text(hint, hx + hpx / 2, hy + hpx / 6, hpx, Theme.SOFT, false);
-        }
+        LinkHover.draw(c, s, grid(), px, mx * scale, my * scale);   // the link under the mouse: Ctrl+click opens it
         c.end();
     }
 
@@ -180,21 +169,12 @@ public final class AppScreen extends Screen implements Blur {
         return true;
     }
 
-    /** The web link at a mouse position (GUI units), or null. */
-    private Links.Link link(TerminalBuffer.Snapshot s, double x, double y) {
-        int c = col(x), r = row(y);
-        if (r < 0 || r >= s.rows() || r >= s.lines().size() || c < 0 || c >= s.cols()) return null;
-        return Links.at(Links.cells(s.lines().get(r)), r, c);
-    }
+    private LinkHover.Grid grid() { return new LinkHover.Grid(ox, oy, cw, ch); }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         if (e.button() == InputConstants.MOUSE_BUTTON_LEFT && keys.ctrl(e.modifiers())) {   // Ctrl+click: a link opens
-            Links.Link l = link(mod.app().snapshot(), e.x(), e.y());
-            if (l != null) {
-                OpenLink.open(l.url());
-                return true;
-            }
+            if (LinkHover.click(mod.app().snapshot(), grid(), e.x() * scale, e.y() * scale)) return true;
         }
         held = xtermButton(e.button());
         return report(held, true, false, e.x(), e.y(), e.modifiers());

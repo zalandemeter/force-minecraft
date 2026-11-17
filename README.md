@@ -82,7 +82,7 @@ Change them in Options → Controls → Key Binds → Force. A key can be a comb
 <kbd>Esc</kbd> hides Force instead, so you can always get out.
 
 The mouse works where Force asks for it: click its session cards, header and menus, and scroll with the wheel.
-Links open in your browser with <kbd>Ctrl</kbd>+click, as in a terminal.
+Links open in your browser with <kbd>Ctrl</kbd>+click, as in a terminal, also when they wrap onto the next line.
 
 ## Settings
 
