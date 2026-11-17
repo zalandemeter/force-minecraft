@@ -52,7 +52,8 @@ A release is a tag: `git tag vX.Y.Z && git push origin vX.Y.Z` on a commit of `m
 `.github/workflows/release.yml` checks the commit (on `main`, newer than every release, its CI passed), builds one jar
 per Minecraft version (`force-minecraft-X.Y.Z+26.2.jar`, `…+26.3.jar`) with their SHA-256, and publishes a GitHub
 Release whose notes list the merged pull requests. When the repository has a `MODRINTH_TOKEN` secret and a
-`MODRINTH_PROJECT_ID` variable, it uploads both jars to Modrinth too, as versions of the same number.
+`MODRINTH_PROJECT_ID` variable, it uploads both jars to Modrinth too, as versions of the same number, and sets the project's content disclosures
+from `.github/modrinth-disclosures.json`.
 
 ## Architecture
 
