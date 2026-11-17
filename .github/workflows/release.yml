@@ -148,6 +148,7 @@ jobs:
               --arg name "Force ${VERSION#v} for Minecraft $mc" --arg mc "$mc" --arg notes "$notes" '{
                 project_id: $project, version_number: $number, name: $name, changelog: $notes,
                 game_versions: [$mc], loaders: ["fabric"], version_type: "release", featured: true,
+                environment: "client_only",
                 dependencies: [
                   {project_id: "P7dR8mSH", dependency_type: "required"},
                   {project_id: "mOgUt4GM", dependency_type: "optional"}],
