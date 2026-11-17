@@ -59,10 +59,10 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("force_mc", "force"));
         // in Controls → Key Binds → Force; each can be a combination (Ctrl, Alt, Shift + a key)
         consoleKey = key("key.force_mc.console", InputConstants.KEY_F12, cat);
-        hudKey = key("key.force_mc.hud", InputConstants.KEY_F10, cat);
+        hudKey = key("key.force_mc.hud", InputConstants.UNKNOWN.getValue(), cat);
         attentionKey = key("key.force_mc.attention", InputConstants.UNKNOWN.getValue(), cat);
         sessionsKey = key("key.force_mc.sessions", InputConstants.UNKNOWN.getValue(), cat);
-        settingsKey = key("key.force_mc.settings", InputConstants.UNKNOWN.getValue(), cat);
+        settingsKey = key("key.force_mc.settings", InputConstants.KEY_F10, cat);
 
         Hud hud = new Hud(this);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("force_mc", "sessions"), hud::draw);
