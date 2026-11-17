@@ -30,7 +30,9 @@ import static org.lwjgl.util.freetype.FreeType.*;
  * interpreter is not safe for that (a crash in {@code TT_RunIns} when many sizes are defined). Here one FreeType
  * library of our own is used by the render thread only, with light auto-hinting, which never runs that interpreter.
  * JetBrains Mono (regular, bold) first, then Force's icons (a Nerd Fonts symbols subset), DejaVu Sans Mono and
- * DejaVu Sans for what is left.
+ * DejaVu Sans for what is left. Emoji come in colour from the system's emoji font (the one a terminal uses: Noto
+ * Color Emoji on Linux), as a terminal draws them: those no text font has, those marked with VS16 (⚠️), and the
+ * pictographs from U+1F000 on.
  */
 public final class GlyphAtlas {
     private static final int PAGE = 1024;
@@ -39,8 +41,21 @@ public final class GlyphAtlas {
     private static final String[] REGULAR = {"jbm-regular.ttf", "nerd-symbols.ttf", "dejavu-sans-mono.ttf", "dejavu-sans.ttf"};
     private static final String[] BOLD = {"jbm-bold.ttf", "nerd-symbols.ttf", "dejavu-sans-mono.ttf", "dejavu-sans.ttf"};
 
-    /** A glyph's place in a page and how it sits on the pen (x right, baseline). Empty when w == 0. */
-    record Glyph(Page page, int u, int v, int w, int h, int left, int top, int advance) {}
+    /** A glyph's place in a page and how it sits on the pen (x right, baseline). Empty when w == 0. `color`: its own
+     * colours (an emoji), not tinted with the text's. */
+    record Glyph(Page page, int u, int v, int w, int h, int left, int top, int advance, boolean color) {
+        Glyph(Page page, int u, int v, int w, int h, int left, int top, int advance) {
+            this(page, u, v, w, h, left, top, advance, false);
+        }
+    }
+
+    /** Where systems keep their colour emoji font, after the one fontconfig names. */
+    private static final String[] EMOJI_FONTS = {
+            "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",                  // Debian, Ubuntu
+            "/usr/share/fonts/noto/NotoColorEmoji.ttf",                           // Arch
+            "/usr/share/fonts/google-noto-color-emoji-fonts/NotoColorEmoji.ttf",  // Fedora
+            "/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf",
+            "/System/Library/Fonts/Apple Color Emoji.ttc"};                      // macOS
 
     /** A size's cell: the advance of "M", the line box, and the baseline's place in it. */
     public record Metrics(int cellW, int cellH, int baseline) {}
@@ -69,6 +84,8 @@ public final class GlyphAtlas {
     private final Map<Long, Glyph> glyphs = new HashMap<>();
     private final Map<Integer, Metrics> metrics = new HashMap<>();
     private boolean failed;
+    private FT_Face emoji;
+    private boolean emojiLooked;
 
     /** The atlas (render thread only). */
     public static GlyphAtlas get() {
@@ -95,6 +112,10 @@ public final class GlyphAtlas {
             if (in == null) throw new IOException("missing font " + file);
             bytes = in.readAllBytes();
         }
+        return face(bytes, file, stack);
+    }
+
+    private FT_Face face(byte[] bytes, String file, MemoryStack stack) throws IOException {
         ByteBuffer buf = MemoryUtil.memAlloc(bytes.length).put(bytes).flip();
         data.add(buf);
         PointerBuffer f = stack.mallocPointer(1);
@@ -121,24 +142,37 @@ public final class GlyphAtlas {
     }
 
     Glyph glyph(int cp, int px, boolean isBold) {
-        long key = ((long) px << 33) | (isBold ? 1L << 32 : 0) | (cp & 0xFFFFFFFFL);
+        return glyph(cp, px, isBold, false);
+    }
+
+    Glyph glyph(int cp, int px, boolean isBold, boolean asEmoji) {
+        long key = ((long) px << 34) | (asEmoji ? 1L << 33 : 0) | (isBold ? 1L << 32 : 0) | (cp & 0xFFFFFFFFL);
         Glyph g = glyphs.get(key);
         if (g == null) {
-            g = render(cp, px, isBold);
+            g = render(cp, px, isBold, asEmoji);
             glyphs.put(key, g);
         }
         return g;
     }
 
-    private Glyph render(int cp, int px, boolean isBold) {
+    private Glyph render(int cp, int px, boolean isBold, boolean asEmoji) {
         if (failed) return new Glyph(null, 0, 0, 0, 0, 0, 0, Math.max(1, px * 6 / 10));
+        if (asEmoji || (cp >= 0x1F000 && cp <= 0x1FAFF)) {
+            Glyph e = renderEmoji(cp, px);
+            if (e != null) return e;
+        }
         List<FT_Face> faces = isBold ? bold : regular;
-        FT_Face face = faces.get(0);
+        FT_Face face = null;
         for (FT_Face f : faces) {
             if (FT_Get_Char_Index(f, cp) != 0) {
                 face = f;
                 break;
             }
+        }
+        if (face == null) {                            // no text font has it: an emoji (✅ ❌), or the missing box
+            Glyph e = renderEmoji(cp, px);
+            if (e != null) return e;
+            face = faces.get(0);
         }
         FT_Set_Pixel_Sizes(face, 0, px);
         if (FT_Load_Char(face, cp, FLAGS) != 0) return new Glyph(null, 0, 0, 0, 0, 0, 0, Math.max(1, px * 6 / 10));
@@ -161,6 +195,104 @@ public final class GlyphAtlas {
         }
         page.dirty = true;
         return new Glyph(page, u, v, w, h, slot.bitmap_left(), slot.bitmap_top(), advance);
+    }
+
+    /** The system's colour emoji font, found once: the one fontconfig picks for "emoji", else a known place. */
+    private FT_Face emojiFace() {
+        if (emojiLooked) return emoji;
+        emojiLooked = true;
+        List<String> paths = new ArrayList<>();
+        try {
+            Process p = new ProcessBuilder("fc-match", "-f", "%{file}", "emoji:color=true").redirectErrorStream(true)
+                    .start();
+            String out = new String(p.getInputStream().readAllBytes()).trim();
+            if (p.waitFor() == 0 && !out.isEmpty()) paths.add(out);
+        } catch (IOException | RuntimeException e) {
+            // no fontconfig: the known places
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        paths.addAll(List.of(EMOJI_FONTS));
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            for (String path : paths) {
+                java.nio.file.Path file = java.nio.file.Path.of(path);
+                if (!java.nio.file.Files.isRegularFile(file)) continue;
+                try {
+                    FT_Face f = face(java.nio.file.Files.readAllBytes(file), path, stack);
+                    if (FT_HAS_COLOR(f)) {
+                        emoji = f;
+                        return f;
+                    }
+                    FT_Done_Face(f);                       // a plain font (fontconfig's last resort): not an emoji one
+                } catch (IOException | RuntimeException ignored) {
+                }
+            }
+        }
+        System.err.println("force_mc: no colour emoji font (install Noto Color Emoji): emoji are drawn as boxes");
+        return null;
+    }
+
+    /**
+     * An emoji in colour, about two cells wide and as tall as the text, centred on the line: a bitmap font's strike
+     * (Noto, Apple) scaled down, or a colour outline font rendered at the size.
+     */
+    private Glyph renderEmoji(int cp, int px) {
+        FT_Face f = emojiFace();
+        if (f == null) return null;
+        int index = FT_Get_Char_Index(f, cp);
+        if (index == 0) return null;
+        Metrics m = metrics(px);
+        int targetH = Math.round(px * 1.15f);
+        if (f.num_fixed_sizes() > 0) {
+            int best = 0;
+            var sizes = f.available_sizes();
+            for (int i = 1; i < f.num_fixed_sizes(); i++) if (sizes.get(i).height() > sizes.get(best).height()) best = i;
+            if (FT_Select_Size(f, best) != 0) return null;
+        } else FT_Set_Pixel_Sizes(f, 0, targetH);
+        if (FT_Load_Glyph(f, index, FT_LOAD_COLOR | FT_LOAD_RENDER) != 0) return null;
+        FT_Bitmap bm = f.glyph().bitmap();
+        int bw = bm.width(), bh = bm.rows();
+        if (bw == 0 || bh == 0 || bm.pixel_mode() != FT_PIXEL_MODE_BGRA) return null;
+        int th = targetH, tw = Math.round((float) bw * th / bh);
+        if (tw > 2 * m.cellW()) {
+            tw = 2 * m.cellW();
+            th = Math.max(1, Math.round((float) bh * tw / bw));
+        }
+        Page page = place(tw, th);
+        int u = page.x, v = page.y;
+        page.x += tw + 1;
+        ByteBuffer buf = bm.buffer(Math.abs(bm.pitch()) * bh);
+        int pitch = Math.abs(bm.pitch());
+        // area average of the premultiplied source, then straight alpha
+        for (int y = 0; y < th; y++) {
+            int y0 = y * bh / th, y1 = Math.max(y0 + 1, (y + 1) * bh / th);
+            for (int x = 0; x < tw; x++) {
+                int x0 = x * bw / tw, x1 = Math.max(x0 + 1, (x + 1) * bw / tw);
+                long sb = 0, sg = 0, sr = 0, sa = 0;
+                for (int yy = y0; yy < y1; yy++) {
+                    int row = yy * pitch;
+                    for (int xx = x0; xx < x1; xx++) {
+                        int o = row + xx * 4;
+                        sb += buf.get(o) & 0xFF;
+                        sg += buf.get(o + 1) & 0xFF;
+                        sr += buf.get(o + 2) & 0xFF;
+                        sa += buf.get(o + 3) & 0xFF;
+                    }
+                }
+                int argb = 0;
+                if (sa > 0) {
+                    int n = (y1 - y0) * (x1 - x0);
+                    int a = (int) (sa / n);
+                    int r = (int) Math.min(255, sr * 255 / sa), g = (int) Math.min(255, sg * 255 / sa),
+                            b = (int) Math.min(255, sb * 255 / sa);
+                    argb = (a << 24) | (r << 16) | (g << 8) | b;
+                }
+                page.image.setPixel(u + x, v + y, argb);
+            }
+        }
+        page.dirty = true;
+        int top = m.baseline() - (m.cellH() - th) / 2;      // centred in the line box
+        return new Glyph(page, u, v, tw, th, 0, top, tw, true);
     }
 
     private Page place(int w, int h) {
@@ -195,20 +327,18 @@ public final class GlyphAtlas {
     public int draw(Canvas c, String text, int x, int lineTop, int px, boolean isBold, int color, int cellW) {
         Metrics m = metrics(px);
         int baseline = lineTop + m.baseline();
-        List<Glyph> line = new ArrayList<>(text.length());
-        for (int i = 0; i < text.length(); ) {
-            int cp = text.codePointAt(i);
-            i += Character.charCount(cp);
-            line.add(glyph(cp, px, isBold));
-        }
+        List<Glyph> line = glyphs(text, px, isBold);
         flush();
         int pen = x;
         for (Glyph g : line) {
             if (g.w() > 0) {
-                // a glyph wider than its cell (a fallback font's) is centred in it rather than pushing the grid
+                // a glyph wider than its cell (a fallback font's) is centred in it rather than pushing the grid; an
+                // emoji in one cell (⚠️) runs on into the next, as in a terminal
                 int dx = cellW > 0 && g.advance() != cellW ? (cellW - g.advance()) / 2 : 0;
+                if (g.color()) dx = Math.max(0, dx);
+                int tint = g.color() ? (color & 0xFF000000) | 0xFFFFFF : color;
                 c.g.blit(RenderPipelines.GUI_TEXTURED, g.page().id, pen + dx + g.left(), baseline - g.top(), g.u(),
-                        g.v(), g.w(), g.h(), PAGE, PAGE, color);
+                        g.v(), g.w(), g.h(), PAGE, PAGE, tint);
             }
             pen += cellW > 0 ? cellW : g.advance();
         }
@@ -217,11 +347,20 @@ public final class GlyphAtlas {
 
     public int width(String text, int px, boolean isBold) {
         int w = 0;
+        for (Glyph g : glyphs(text, px, isBold)) w += g.advance();
+        return w;
+    }
+
+    /** The glyphs of `text`: VS16 makes the character before it an emoji and takes no place itself. */
+    private List<Glyph> glyphs(String text, int px, boolean isBold) {
+        List<Glyph> line = new ArrayList<>(text.length());
         for (int i = 0; i < text.length(); ) {
             int cp = text.codePointAt(i);
             i += Character.charCount(cp);
-            w += glyph(cp, px, isBold).advance();
+            if (cp == 0xFE0F) continue;
+            boolean asEmoji = i < text.length() && text.charAt(i) == '\uFE0F';
+            line.add(glyph(cp, px, isBold, asEmoji));
         }
-        return w;
+        return line;
     }
 }

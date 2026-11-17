@@ -26,28 +26,49 @@ Force: the hosts you added with `force host add`, the states, the order and the 
 
 | Key | |
 |---|---|
-| `F12` | show / hide Force: the whole app, full screen. Every other key goes to Force, Ctrl+Space included; Ctrl+Shift+V pastes |
-| `Shift+Tab` | in the game: shows it too (inside Force it is the session's own key, e.g. Claude Code's mode cycle) |
-| `Esc` | hides it too (Ctrl+[ is Esc for Force: it closes Force's menus and interrupts an agent) |
+| `F12` | show / hide Force: the whole app, full screen. Every other key goes to Force, Esc and Ctrl+Space included; Ctrl+Shift+V pastes |
 | `F10` | show / hide the session list on the game screen: only the sessions with something going on (needs you, working, your turn, unread), host by host |
 | (unbound) | jump to the next session that needs you, in the session view |
 | (unbound) | the session view: the native list and one session's terminal (Ctrl+Shift+↑/↓ switch) |
+| (unbound) | the settings |
+
+Keys are set in Options → Controls → Key Binds → Force, and each can be a combination: hold Ctrl, Alt or Shift while
+pressing the key (Ctrl + F12). A combination fires only with exactly its modifiers, so F12 and Ctrl + F12 can do two
+things. If the show / hide key is unbound, Esc hides Force's view, so it can always be left.
 
 The mouse works where Force asks for it: its sidebar cards, header and menus are clickable, the wheel scrolls. The
 game keeps running. The app starts hidden as soon as Force is connected and stays running: showing it is instant, and
 it is as you left it (its host, its session). Hidden, Force does not count the session it shows as viewed, so you
-still get its toasts while you play. All keys can be changed in Options → Controls → Force.
+still get its toasts while you play.
 
-Settings: `config/force_mc.json` (written on the first start):
+Emoji are drawn in colour from the system's emoji font, as a terminal draws them (Noto Color Emoji on Linux:
+`fonts-noto-color-emoji` on Debian and Ubuntu, `noto-fonts-emoji` on Arch); without one they show as boxes.
+
+### Settings
+
+Mods → Force → Configure (with [Mod Menu](https://modrinth.com/mod/modmenu), which Fabulously Optimized ships), or the
+settings key. Changes show at once:
+
+| Setting | Default | |
+|---|---|---|
+| Force's view: background | 86% | how solid the glass behind Force is (0% shows the game) |
+| Force's view: padding | 2 px | space around it, in GUI pixels |
+| Force's view: blur the game | on | |
+| Force's view: text size | 100% | on top of Minecraft's GUI scale |
+| Session list: background | 86% | |
+| Session list: position | right | right, left, or a corner |
+| Session list: most sessions | 8 | |
+| Session list: show at start | on | |
+| Toasts | on | when a session needs you, finishes or stops |
+| Key binds… | | opens Controls → Key Binds |
+
+They are kept in `config/force_mc.json`, with a few more for development:
 
 | Key | Default | |
 |---|---|---|
 | `command` | `["~/.local/bin/force", "api"]` | how to start Force's frontend API |
-| `hud` | `true` | the session list on the game screen |
-| `toasts`, `sound` | `true` | a toast when a session needs you, finishes or stops |
-| `hudRows` | `8` | the most sessions the game-screen list shows |
 | `terminalFontPx`, `uiFontPx`, `hudFontPx` | `0` | text sizes in screen pixels (12–48) for the console's terminal, its list, the game-screen list; `0` follows Minecraft's GUI scale (so a high-DPI display gets larger text) |
-| `textScale` | `1.0` | multiplies the sizes that follow the GUI scale |
+| `keyModifiers` | `{}` | the modifiers of each key combination (the key itself is in `options.txt`) |
 
 ## Versions
 
@@ -84,10 +105,14 @@ src/main/java/cc/useforce/mc/core/      plain Java, no Minecraft (unit-tested)
 src/client/java/cc/useforce/mc/         Minecraft
   ui/Theme, Panel                       Force's colours and the glass panels
   ui/SessionList, ui/TerminalView       widgets: draw a model / a buffer, answer "what is here"
-  ui/GlyphAtlas, ui/BoxDraw             the text renderer: FreeType glyphs at exact pixel size, box lines
+  ui/GlyphAtlas, ui/BoxDraw             the text renderer: FreeType glyphs at exact pixel size (colour emoji from
+                                        the system's emoji font), box lines
   Hud, AppScreen, ConsoleScreen         layouts: the game screen; the whole app; the session view
+  Config, SettingsScreen, ModMenuEntry  the settings: the file, the screen (Minecraft's option widgets), Mod Menu
+  ComboKey, mixin/KeyBindsScreenMixin   key bindings that can be combinations, set in Controls → Key Binds
   ForceClient                           wiring: key bindings, toasts, the layouts, the controller
-src/gametest/                           the real client, headless: a world, the console, typing, switching
+src/gametest/                           the real client, headless: a world, the console, typing, switching, emoji,
+                                        the settings, a key combination
 ```
 
 - A new gesture (a click, a key, the wheel) maps to an existing `Intent`; a new behaviour is a new `Intent`.

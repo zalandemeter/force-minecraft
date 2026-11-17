@@ -8,6 +8,11 @@ base {
 
 repositories {
 	mavenCentral()
+	// Mod Menu's API, for its "Configure" button (compile only: the mod runs without it)
+	maven {
+		url = "https://maven.terraformersmc.com/releases/"
+		content { includeGroup "com.terraformersmc" }
+	}
 }
 
 loom {
@@ -36,6 +41,7 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 
 	// the protocol and model code is plain Java: tested without Minecraft
 	testImplementation platform('org.junit:junit-bom:5.13.4')

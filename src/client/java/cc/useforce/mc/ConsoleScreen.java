@@ -24,7 +24,7 @@ import java.util.List;
  * the running game (it never pauses). Every key goes to the terminal, Esc included; the console key closes it,
  * Ctrl+Shift+Up/Down step through the list, a click on the list picks, the wheel scrolls the terminal.
  */
-public final class ConsoleScreen extends Screen {
+public final class ConsoleScreen extends Screen implements Blur {
     private final ForceClient mod;
     private final SessionList list = new SessionList();
     private final TerminalView view = new TerminalView();
@@ -42,6 +42,9 @@ public final class ConsoleScreen extends Screen {
     public boolean isPauseScreen() { return false; }
 
     @Override
+    public void blur(GuiGraphicsExtractor g) { extractBlurredBackground(g); }
+
+    @Override
     public boolean shouldCloseOnEsc() { return false; }
 
     private int px, tpx;            // the list's and the terminal's text sizes (screen pixels)
@@ -49,7 +52,7 @@ public final class ConsoleScreen extends Screen {
     private void layout(Canvas c) {
         px = mod.config().uiPx(c.scale);
         tpx = mod.config().terminalPx(c.scale);
-        int m = px;
+        int m = mod.config().paddingPx(c.scale) + px / 2;
         lw = Math.max(px * 14, Math.min(px * 22, c.width() / 4));
         lx = m;
         ly = m;
@@ -62,8 +65,7 @@ public final class ConsoleScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        extractBlurredBackground(g);                        // the game, blurred behind the glass: text stays legible
-        g.fill(0, 0, width, height, 0x55000000);
+        AppScreen.background(this, g, mod.config());       // the game, blurred behind the glass: text stays legible
     }
 
     @Override
@@ -75,14 +77,15 @@ public final class ConsoleScreen extends Screen {
         ForceModel model = mod.model();
         ForceModel.State s = model.state();
         c.begin();
-        Panel.draw(c, lx, ly, lw, lh);
+        double o = mod.config().terminalOpacity;
+        Panel.draw(c, lx, ly, lw, lh, o);
         Hud.header(c, model, s, lx, ly, lw, px);
         int head = Theme.line(px) + px;
         list.draw(c, lx + 1, ly + head, lw - 2, lh - head - Theme.line(px) - px / 2, s, mod.terminal().address(), false,
                 s.hosts().size() > 1, px);
         c.text(c.clip(keyHint(), lw - px, px), lx + px / 2, ly + lh - Theme.line(px) - px / 4, px, Theme.DIM, false);
 
-        Panel.draw(c, tx, ty, tw, th);
+        Panel.draw(c, tx, ty, tw, th, o);
         ForceModel.Session cur = mod.terminal().address() == null ? null : s.find(mod.terminal().address());
         String title = cur == null ? Hud.empty(model) : cur.address() + "  ·  " + Theme.label(cur);
         c.text(title, tx + px / 2, ty + px / 2, px, cur == null ? Theme.DIM : Theme.color(cur), cur != null);
@@ -105,8 +108,7 @@ public final class ConsoleScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent e) {
         int mods = e.modifiers();
-        if (mod.isConsoleKey(e) || (e.key() == InputConstants.KEY_ESCAPE && !keys.ctrl(mods) && !keys.alt(mods)
-                && !keys.shift(mods))) {                                                   // F12, Esc
+        if (mod.isCloseKey(e)) {                                                    // F12 (or as set)
             flushTyped();
             mod.controller().handle(new Intent.CloseConsole());
             return true;

@@ -57,12 +57,13 @@ AGENT = r"""
 """
 BANNERS = {"api": AGENT.strip("\n"),
            "web": r"\e[1;31m! demo session web\e[0m wants to run \e[33mBash(rm -rf build)\e[0m",
-           "docs": r"\e[32m● demo session docs\e[0m finished: \e[4m3 files changed\e[0m"}
+           "docs": r"\e[32m● demo session docs\e[0m finished: \e[4m3 files changed\e[0m"
+                   "\n\n✅ tests pass   ⚠️ one warning   ❌ lint   🚀 shipped"}
 profile = ["case \"$(tmux display -p '#S' 2>/dev/null)\" in"]
 for name, text in BANNERS.items():
     profile.append(f"  {name}) printf '%b\\n\\n' '{text}' ;;")
 profile += ["esac", "PS1='$ '"]
-(home / ".bash_profile").write_text("\n".join(profile) + "\n")
+(home / ".bash_profile").write_text("\n".join(profile) + "\n", encoding="utf-8")
 (home / ".config/force").mkdir(parents=True, exist_ok=True)
 
 for name in BANNERS:

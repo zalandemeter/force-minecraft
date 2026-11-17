@@ -31,6 +31,15 @@ class VtTest {
     }
 
     @Test
+    void anEmojiMarkerStaysWithItsCharacter() {
+        Vt vt = vt(10, 2);
+        feed(vt, "\u26A0\uFE0F ok \u2705\uFE0F");   // ⚠️ (one cell) and ✅ (wide) with VS16; joiners are dropped
+        assertEquals("\u26A0\uFE0F ok \u2705\uFE0F   ", row(vt, 0));
+        feed(vt, "\r\n\uFE0Fx\u200D");                // a stray marker has nothing to mark
+        assertEquals("x         ", row(vt, 1));
+    }
+
+    @Test
     void wrapAtTheEdgeAndScroll() {
         Vt vt = vt(5, 2);
         feed(vt, "abcdefgh");                 // abcde | fgh
