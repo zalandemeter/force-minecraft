@@ -29,7 +29,7 @@ public final class Config {
     public int terminalFontPx = 0;
     public int uiFontPx = 0;
     public int hudFontPx = 0;
-    public double textScale = 0.75;
+    public double textScale = 1.0;
 
     /** How see-through the backgrounds are, 0 (clear) to 1 (solid): Force's view (F12) and the game-screen list. */
     public double terminalOpacity = 0.8;
@@ -98,7 +98,7 @@ public final class Config {
         if (c.sidebarPosition == null || !POSITIONS.contains(c.sidebarPosition)) c.sidebarPosition = "right";
         c.terminalOpacity = clamp01(c.terminalOpacity, 0.8);
         c.sidebarOpacity = clamp01(c.sidebarOpacity, 0.75);
-        if (!(c.textScale > 0) || !Double.isFinite(c.textScale)) c.textScale = 0.75;
+        if (!(c.textScale > 0) || !Double.isFinite(c.textScale)) c.textScale = 1.0;
         if (!broken) c.save();                      // a file from an older version gets the new settings, with defaults
         return c;
     }
