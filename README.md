@@ -97,7 +97,7 @@ which Fabulously Optimized ships). Changes show at once.
 | Force's view: background | 80% | how solid the glass behind Force is; at 0% the game shows through |
 | Force's view: padding | 10 px | space around it, in GUI pixels; at 0 it runs edge to edge |
 | Force's view: blur the game | on | |
-| Force's view: text size | 75% | on top of Minecraft's GUI scale |
+| Force's view: text size | 100% | on top of Minecraft's GUI scale |
 | Session list: background | 75% | |
 | Session list: position | right | right, left, or a corner |
 | Session list: most sessions | 8 | |
@@ -105,8 +105,8 @@ which Fabulously Optimized ships). Changes show at once.
 | Toasts | on | when a session needs you, finishes or stops |
 
 They are kept in `config/force_mc.json`, with a few more: `command` (how to start Force's frontend API, default
-`["~/.local/bin/force", "api"]`), and fixed text sizes in screen pixels (`terminalFontPx`, `uiFontPx`, `hudFontPx`;
-`0` follows the GUI scale).
+`["~/.local/bin/force", "api"]`, on Windows the same through `wsl.exe`), and fixed text sizes in screen pixels
+(`terminalFontPx`, `uiFontPx`, `hudFontPx`; `0` follows the GUI scale).
 
 ## Contributing
 
