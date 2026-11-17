@@ -11,7 +11,8 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.List;
 
-/** The game-screen layout: a compact glass list on the right edge, with Force's attention count on top. */
+/** The game-screen layout: a compact glass list (on the right edge, or where the settings put it), with Force's
+ * attention count on top. */
 final class Hud {
     private final ForceClient mod;
     private final SessionList list = new SessionList();
@@ -33,8 +34,11 @@ final class Hud {
         int h = head + (s.sessions().isEmpty() ? line : s.sessions().size() * row + (int) hosts * (line + px / 4))
                 + px / 3;
         c.begin();
-        int x = c.width() - w - px / 2, y = c.height() / 2 - h / 2;
-        Panel.draw(c, x, y, w, h);
+        String pos = mod.config().sidebarPosition;
+        int edge = px / 2;
+        int x = pos.endsWith("left") ? edge : c.width() - w - edge;
+        int y = pos.startsWith("top") ? edge : pos.startsWith("bottom") ? c.height() - h - edge : c.height() / 2 - h / 2;
+        Panel.draw(c, x, y, w, h, mod.config().sidebarOpacity);
         header(c, mod.model(), all, x, y, w, px);
         if (s.sessions().isEmpty())
             c.text(mod.model().status() == ForceModel.Status.CONNECTED ? "all quiet" : empty(mod.model()),

@@ -38,11 +38,10 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     private AppTerminal app;
     private Supervisor supervisor;
     private Controller controller;
-    private KeyMapping consoleKey, hudKey, attentionKey, sessionsKey;
+    private ComboKey consoleKey, hudKey, attentionKey, sessionsKey, settingsKey;
     private boolean hudVisible;
     private net.minecraft.client.gui.screens.Screen console;     // AppScreen or ConsoleScreen while shown
     private boolean wasActive = true;
-    private boolean shiftTabDown;                     // Shift+Tab was down on the last tick (opens once per press)
 
     @Override
     public void onInitializeClient() {
@@ -58,31 +57,38 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
         supervisor.start();
 
         KeyMapping.Category cat = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("force_mc", "force"));
-        consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.console", InputConstants.KEY_F12, cat));
-        hudKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.force_mc.hud", InputConstants.KEY_F10, cat));
-        attentionKey = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.force_mc.attention", InputConstants.UNKNOWN.getValue(), cat));
-        sessionsKey = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.force_mc.sessions", InputConstants.UNKNOWN.getValue(), cat));
+        // in Controls → Key Binds → Force; each can be a combination (Ctrl, Alt, Shift + a key)
+        consoleKey = key("key.force_mc.console", InputConstants.KEY_F12, cat);
+        hudKey = key("key.force_mc.hud", InputConstants.KEY_F10, cat);
+        attentionKey = key("key.force_mc.attention", InputConstants.UNKNOWN.getValue(), cat);
+        sessionsKey = key("key.force_mc.sessions", InputConstants.UNKNOWN.getValue(), cat);
+        settingsKey = key("key.force_mc.settings", InputConstants.UNKNOWN.getValue(), cat);
 
         Hud hud = new Hud(this);
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("force_mc", "sessions"), hud::draw);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
 
+    private ComboKey key(String name, int key, KeyMapping.Category cat) {
+        int mods = ComboKey.fromConfig(config.keyModifiers.get(name));
+        ComboKey k = new ComboKey(name, key, cat, mods, changed -> {
+            if (changed.mods() == 0) config.keyModifiers.remove(changed.getName());
+            else config.keyModifiers.put(changed.getName(), ComboKey.toConfig(changed.mods()));
+            config.save();
+        });
+        KeyMappingHelper.registerKeyMapping(k);
+        return k;
+    }
+
     private void tick(Minecraft mc) {
-        while (consoleKey.consumeClick()) controller.handle(new Intent.ToggleConsole());
-        // Shift+Tab in the game opens Force too (a key binding cannot say Shift+Tab: Tab is the player list). Inside
-        // Force it is the session's own key (Claude Code's mode cycle); only F12 and Esc hide it
-        boolean down = mc.options.keyPlayerList.isDown() && mc.hasShiftDown();
-        if (down && !shiftTabDown && mc.gui.screen() == null) controller.handle(new Intent.OpenConsole());
-        shiftTabDown = down;
-        while (hudKey.consumeClick()) controller.handle(new Intent.ToggleHud());
-        while (attentionKey.consumeClick()) {
+        if (consoleKey.consumeCombo()) controller.handle(new Intent.ToggleConsole());
+        if (hudKey.consumeCombo()) controller.handle(new Intent.ToggleHud());
+        if (attentionKey.consumeCombo()) {
             controller.handle(new Intent.NextAttention());
             if (!consoleOpen()) controller.handle(new Intent.OpenSessions());
         }
-        while (sessionsKey.consumeClick()) controller.handle(new Intent.OpenSessions());
+        if (sessionsKey.consumeCombo()) controller.handle(new Intent.OpenSessions());
+        if (settingsKey.consumeCombo() && mc.gui.screen() == null) mc.gui.setScreen(new SettingsScreen(null, this));
         // an unfocused window: nobody looks at the console, so the session is not "viewed" (Force SPEC §54)
         boolean active = mc.isWindowActive();
         if (console instanceof ConsoleScreen && active != wasActive) terminal.setHidden(!active);
@@ -104,14 +110,10 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     /** The app starts hidden as soon as Force is connected, so the first F12 shows it at once. */
     private void preloadApp(Minecraft mc) {
         if (app.open() || model.status() != ForceModel.Status.CONNECTED || app.problem() != null) return;
-        int gs = mc.getWindow().getGuiScale();
-        int px = config.terminalPx(gs);
-        cc.useforce.mc.ui.GlyphAtlas.Metrics m = cc.useforce.mc.ui.GlyphAtlas.get().metrics(px);
-        int margin = Math.max(px / 2, 6);
-        int cols = Math.max(20, Math.min(500, (mc.getWindow().getWidth() - 2 * margin) / m.cellW()));
-        int rows = Math.max(5, Math.min(200, (mc.getWindow().getHeight() - 2 * margin) / m.cellH()));
+        AppScreen.Layout l = AppScreen.layout(config, mc.getWindow().getGuiScale(), mc.getWindow().getWidth(),
+                mc.getWindow().getHeight());
         app.setHidden(true);
-        app.open(cols, rows);
+        app.open(l.cols(), l.rows());
     }
 
     // --- Controller.Ui
@@ -161,7 +163,15 @@ public final class ForceClient implements ClientModInitializer, Controller.Ui {
     Config config() { return config; }
     boolean hudVisible() { return hudVisible; }
 
+    ComboKey consoleKey() { return consoleKey; }
+
     boolean isConsoleKey(KeyEvent e) { return consoleKey.matches(e); }
+
+    /** Hides Force's view: the console key (F12, or the combination set in Controls). Esc is Force's own key; it
+     * hides the view only while the console key is unbound, so the view can always be left. */
+    boolean isCloseKey(KeyEvent e) {
+        return consoleKey.matches(e) || (consoleKey.isUnbound() && e.isEscape() && ComboKey.fromEvent(e.modifiers()) == 0);
+    }
 
     String consoleKeyName() { return consoleKey.getTranslatedKeyMessage().getString(); }
 }

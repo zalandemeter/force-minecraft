@@ -271,7 +271,10 @@ public final class Vt {
     private void print(int cp) {
         if (lineDrawing && cp >= 0x60 && cp <= 0x7E) cp = DEC.charAt(cp - 0x60);
         int w = width(cp);
-        if (w == 0) return;                                // combining marks and joiners: dropped
+        if (w == 0) {                                      // combining marks and joiners: dropped, but
+            if (cp == EMOJI) emoji();                      // VS16 stays with its character: drawn as an emoji
+            return;
+        }
         if (wrapPending && autowrap) {
             cx = 0;
             lineFeed();
@@ -303,6 +306,17 @@ public final class Vt {
             cx = cols - 1;
             if (autowrap) wrapPending = true;
         }
+    }
+
+    /** VARIATION SELECTOR-16: the character before it is drawn as an emoji (in colour), as a terminal does. */
+    public static final int EMOJI = 0xFE0F;
+
+    private void emoji() {
+        int x = wrapPending ? cx : cx - 1;
+        if (x < 0) return;
+        Cell c = screen[cy][x];
+        if (c.ch.equals(WIDE_TAIL) && x > 0) c = screen[cy][x - 1];
+        if (!c.ch.equals(" ") && !c.ch.equals(WIDE_TAIL) && c.ch.indexOf(EMOJI) < 0) c.ch += "\uFE0F";
     }
 
     /** Terminal width of a code point, as tmux (glibc's wcwidth) counts it: 0 (combining), 1, or 2 (wide). */

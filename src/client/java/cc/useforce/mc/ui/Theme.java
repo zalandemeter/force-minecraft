@@ -20,6 +20,12 @@ public final class Theme {
 
     private Theme() {}
 
+    /** `argb` with its alpha set to `opacity` (0–1). */
+    public static int withAlpha(int argb, double opacity) {
+        int a = (int) Math.round(Math.max(0, Math.min(1, opacity)) * 255);
+        return (a << 24) | (argb & 0xFFFFFF);
+    }
+
     /** A text size in screen pixels the console uses (12–48). */
     public static int size(int px) {
         return Math.max(12, Math.min(48, px));

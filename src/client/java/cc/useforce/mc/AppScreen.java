@@ -21,11 +21,12 @@ import net.minecraft.network.chat.Component;
 /**
  * The whole Force app, full screen, over the running game (it never pauses): the same program a terminal runs
  * (Force SPEC §54 vt mode), drawn by the mod's renderer on blurred glass. Every key goes to Force, Esc and Ctrl+Space
- * the console key and Esc hide it (Ctrl+[ is Esc for Force); Ctrl+Shift+V pastes; the mouse works where Force asks for
- * it (its sidebar, header and menus are clickable, the wheel scrolls). Hidden, the app keeps running: it comes back at
- * once, as it was (its host, its session, its menus).
+ * included; the console key (F12, or the combination set in Controls) hides it; Ctrl+Shift+V pastes; the mouse works
+ * where Force asks for it (its sidebar, header and menus are clickable, the wheel scrolls). Hidden, the app keeps
+ * running: it comes back at once, as it was (its host, its session, its menus). The settings screen sets how solid the
+ * glass is, the blur and the padding.
  */
-public final class AppScreen extends Screen {
+public final class AppScreen extends Screen implements Blur {
     private final ForceClient mod;
     private final TerminalView view = new TerminalView();
     private final Keys keys = new Keys(KeyTable.create());
@@ -42,6 +43,9 @@ public final class AppScreen extends Screen {
     public boolean isPauseScreen() { return false; }
 
     @Override
+    public void blur(GuiGraphicsExtractor g) { extractBlurredBackground(g); }
+
+    @Override
     public boolean shouldCloseOnEsc() { return false; }
 
     @Override
@@ -53,8 +57,27 @@ public final class AppScreen extends Screen {
 
     @Override
     public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        extractBlurredBackground(g);
-        g.fill(0, 0, width, height, 0x40000000);
+        background(this, g, mod.config());
+    }
+
+    /** The game behind Force's views: blurred (a setting), and darkened as much as the glass is solid. */
+    static void background(Screen s, GuiGraphicsExtractor g, Config cfg) {
+        if (cfg.blur) ((Blur) s).blur(g);
+        g.fill(0, 0, s.width, s.height, Theme.withAlpha(0, 0.25 * cfg.terminalOpacity / Config.DEFAULT_OPACITY));
+    }
+
+    /** Where the app goes on a screen of this size (screen pixels): its grid and its top-left corner. */
+    record Layout(int cols, int rows, int x, int y, int inset, int cw, int ch) {}
+
+    static Layout layout(Config cfg, int guiScale, int screenW, int screenH) {
+        int px = cfg.terminalPx(guiScale);
+        GlyphAtlas.Metrics m = GlyphAtlas.get().metrics(px);
+        int inset = Math.max(px / 2, 6) / 2;                   // the glass around the cells
+        int pad = cfg.paddingPx(guiScale) + inset;
+        int w = Math.max(1, screenW - 2 * pad), h = Math.max(1, screenH - 2 * pad);
+        int cols = Math.max(20, Math.min(500, w / m.cellW())), rows = Math.max(5, Math.min(200, h / m.cellH()));
+        return new Layout(cols, rows, pad + (w - cols * m.cellW()) / 2, pad + (h - rows * m.cellH()) / 2, inset,
+                m.cellW(), m.cellH());
     }
 
     @Override
@@ -62,19 +85,20 @@ public final class AppScreen extends Screen {
         flushTyped();
         Canvas c = new Canvas(g, font, minecraft.getWindow().getGuiScale());
         scale = c.scale;
-        px = mod.config().terminalPx(scale);
-        GlyphAtlas.Metrics m = GlyphAtlas.get().metrics(px);
-        cw = m.cellW();
-        ch = m.cellH();
-        int margin = Math.max(px / 2, 6);
-        int w = c.width() - 2 * margin, h = c.height() - 2 * margin;
-        TerminalView.Grid grid = TerminalView.fit(c, w, h, px);
+        Config cfg = mod.config();
+        px = cfg.terminalPx(scale);
+        Layout l = layout(cfg, scale, c.width(), c.height());
+        cw = l.cw();
+        ch = l.ch();
+        TerminalView.Grid grid = new TerminalView.Grid(l.cols(), l.rows());
         AppTerminal app = mod.app();
         app.open(grid.cols(), grid.rows());            // opens once; afterwards only follows the size
-        ox = margin + (w - grid.cols() * cw) / 2;
-        oy = margin + (h - grid.rows() * ch) / 2;
+        ox = l.x();
+        oy = l.y();
+        int in = l.inset();
+        view.cellOpacity = Math.min(1, cfg.terminalOpacity / Config.DEFAULT_OPACITY);
         c.begin();
-        Panel.draw(c, ox - margin / 2, oy - margin / 2, grid.cols() * cw + margin, grid.rows() * ch + margin);
+        Panel.draw(c, ox - in, oy - in, grid.cols() * cw + 2 * in, grid.rows() * ch + 2 * in, cfg.terminalOpacity);
         String problem = app.problem();
         TerminalBuffer.Snapshot s = app.snapshot();
         if (problem != null && s.cols() == 0) c.text(problem, ox, oy, px, Theme.RED, false);
@@ -87,8 +111,8 @@ public final class AppScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent e) {
         int mods = e.modifiers();
-        if (mod.isConsoleKey(e) || (e.key() == InputConstants.KEY_ESCAPE && !keys.ctrl(mods) && !keys.alt(mods)
-                && !keys.shift(mods))) {                                                   // F12, Esc
+        if (mod.isCloseKey(e)) {                                                    // F12 (or as set)
+            flushTyped();
             mod.controller().handle(new cc.useforce.mc.core.Intent.CloseConsole());
             return true;
         }

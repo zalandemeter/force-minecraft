@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "cc.useforce.mc.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": ["KeyBindsScreenMixin"],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

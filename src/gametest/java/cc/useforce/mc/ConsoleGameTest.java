@@ -11,7 +11,8 @@ import net.minecraft.client.input.KeyEvent;
 
 /**
  * The real client against a real Force (scripts/demo_force.py: a Force release, three shell sessions, its daemon):
- * the game-screen list, the session view, and the whole Force app on F12 (its own UI, typing, its menu, switching).
+ * the game-screen list, the session view, the whole Force app on F12 (its own UI, typing, its menu, switching, emoji),
+ * the settings and a key combination set in Controls.
  * Screenshots of each step land in build/run/clientGameTest/screenshots (the README shows some).
  */
 public class ConsoleGameTest implements FabricClientGameTest {
@@ -28,6 +29,8 @@ public class ConsoleGameTest implements FabricClientGameTest {
 
             sessionView(ctx, mod);
             app(ctx, mod);
+            settings(ctx, mod);
+            combination(ctx, mod);
         }
     }
 
@@ -90,20 +93,19 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.waitFor(mc -> text(mod.app().snapshot()).contains("Jump to session"), 20 * 10);
         ctx.waitTicks(10);
         ctx.takeScreenshot("4-app-menu");
-        // Esc hides the view; Ctrl+[ is Esc for Force (closes its menu)
-        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
-                new KeyEvent(InputConstants.KEY_LBRACKET, 0, InputConstants.MOD_CONTROL)));
+        // Esc is Force's own key: it closes Force's menu, the view stays
+        ctx.getInput().pressKey(InputConstants.KEY_ESCAPE);
         ctx.waitFor(mc -> !text(mod.app().snapshot()).contains("Jump to session"), 20 * 10);
         if (!(ctx.computeOnClient(mc -> mc.gui.screen()) instanceof AppScreen)) throw new AssertionError("still shown");
 
         // Alt+3: the third session, as in any terminal
         ctx.runOnClient(mc -> mc.gui.screen().keyPressed(new KeyEvent(InputConstants.KEY_3, 0, InputConstants.MOD_ALT)));
-        waitApp(ctx, mod, "alt-3", t -> t.contains("finished: 3 files changed"));
+        waitApp(ctx, mod, "alt-3", t -> t.contains("finished: 3 files changed") && t.contains("\u26A0\uFE0F"));
         ctx.waitTicks(10);
-        ctx.takeScreenshot("5-app-switched");
+        ctx.takeScreenshot("5-app-switched-emoji");
 
-        // Esc hides it, F12 shows it again: the same app, as it was (still on docs), not a fresh one
-        ctx.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        // F12 hides it and shows it again: the same app, as it was (still on docs), not a fresh one
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
         if (!mod.app().open() || !mod.app().hidden()) throw new AssertionError("hidden, the app keeps running");
         ctx.getInput().pressKey(InputConstants.KEY_F12);
@@ -122,6 +124,79 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
         ctx.waitTicks(10);
         ctx.takeScreenshot("7-game-screen-active-only");
+    }
+
+    /** The settings (Mod Menu's Configure, or a key): see-through glass, padding, the list elsewhere. */
+    private static void settings(ClientGameTestContext ctx, ForceClient mod) {
+        ctx.runOnClient(mc -> mc.gui.setScreen(new SettingsScreen(null, mod)));
+        ctx.waitForScreen(SettingsScreen.class);
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("8-settings");
+        ctx.runOnClient(mc -> {
+            Config c = mod.config();
+            c.terminalOpacity = 0.35;
+            c.sidebarOpacity = 0.2;
+            c.sidebarPosition = "top-left";
+            c.terminalPadding = 24;
+            c.blur = false;
+            mc.gui.setScreen(null);
+        });
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("9-list-top-left-clear");
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitForScreen(AppScreen.class);
+        ctx.waitTicks(20);
+        ctx.takeScreenshot("10-app-clear-padded");
+        ctx.getInput().pressKey(InputConstants.KEY_F12);
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        ctx.runOnClient(mc -> {
+            Config d = new Config();
+            Config c = mod.config();
+            c.terminalOpacity = d.terminalOpacity;
+            c.sidebarOpacity = d.sidebarOpacity;
+            c.sidebarPosition = d.sidebarPosition;
+            c.terminalPadding = d.terminalPadding;
+            c.blur = d.blur;
+        });
+    }
+
+    /** Controls → Key Binds: Ctrl+F9 for Force's view (Ctrl alone waits for the key), then only Ctrl+F9 works. */
+    private static void combination(ClientGameTestContext ctx, ForceClient mod) {
+        ctx.runOnClient(mc -> {
+            var s = new net.minecraft.client.gui.screens.options.controls.KeyBindsScreen(null, mc.options);
+            mc.gui.setScreen(s);
+            s.selectedKey = mod.consoleKey();
+            s.keyPressed(new KeyEvent(InputConstants.KEY_LCONTROL, 0, InputConstants.MOD_CONTROL));
+            if (s.selectedKey != mod.consoleKey()) throw new AssertionError("Ctrl alone waits for the key");
+            s.keyPressed(new KeyEvent(InputConstants.KEY_F9, 0, InputConstants.MOD_CONTROL));
+            if (s.selectedKey != null) throw new AssertionError("Ctrl+F9 set");
+        });
+        ctx.waitTicks(5);
+        ctx.takeScreenshot("11-controls-combination");
+        String shown = ctx.computeOnClient(mc -> mod.consoleKey().getTranslatedKeyMessage().getString());
+        if (!shown.equals("Ctrl + F9")) throw new AssertionError("shown as " + shown);
+        if (!"ctrl".equals(mod.config().keyModifiers.get("key.force_mc.console")))
+            throw new AssertionError("saved: " + mod.config().keyModifiers);
+        ctx.runOnClient(mc -> mc.gui.setScreen(null));
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        ctx.runOnClient(mc -> mod.controller().handle(new Intent.OpenConsole()));
+        ctx.waitForScreen(AppScreen.class);
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(new KeyEvent(InputConstants.KEY_F9, 0, 0)));
+        ctx.waitTicks(5);
+        if (!(ctx.computeOnClient(mc -> mc.gui.screen()) instanceof AppScreen))
+            throw new AssertionError("F9 alone is Force's");
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(
+                new KeyEvent(InputConstants.KEY_F9, 0, InputConstants.MOD_CONTROL)));
+        ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        ctx.runOnClient(mc -> {                         // back to F12
+            var s = new net.minecraft.client.gui.screens.options.controls.KeyBindsScreen(null, mc.options);
+            mc.gui.setScreen(s);
+            s.selectedKey = mod.consoleKey();
+            s.keyPressed(new KeyEvent(InputConstants.KEY_F12, 0, 0));
+            mc.gui.setScreen(null);
+        });
+        if (!mod.config().keyModifiers.isEmpty()) throw new AssertionError("reset: " + mod.config().keyModifiers);
     }
 
     private static void waitApp(ClientGameTestContext ctx, ForceClient mod, String name,
