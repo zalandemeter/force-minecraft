@@ -148,6 +148,17 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.waitForScreen(AppScreen.class);
         ctx.waitTicks(20);
         ctx.takeScreenshot("10-app-clear-padded");
+        // no padding: the glass runs to the screen's edges
+        ctx.runOnClient(mc -> {
+            mod.config().terminalPadding = 0;
+            mod.config().terminalOpacity = 1;
+            var l = AppScreen.layout(mod.config(), mc.getWindow().getGuiScale(), mc.getWindow().getWidth(),
+                    mc.getWindow().getHeight());
+            if (l.gx() != 0 || l.gy() != 0 || l.gw() != mc.getWindow().getWidth() || l.gh() != mc.getWindow().getHeight())
+                throw new AssertionError("padding 0: the glass covers the screen, not " + l);
+        });
+        ctx.waitTicks(10);
+        ctx.takeScreenshot("10b-app-no-padding");
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
         ctx.runOnClient(mc -> {
