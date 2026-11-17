@@ -1,5 +1,7 @@
 package cc.useforce.mc;
 
+import cc.useforce.mc.core.Os;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.Locale;
@@ -21,10 +23,11 @@ final class OpenLink {
         }
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
         if (!scheme.equals("http") && !scheme.equals("https") || uri.getHost() == null) return false;
-        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        String[] cmd = os.contains("mac") ? new String[]{"open", uri.toString()}
-                : os.contains("win") ? new String[]{"rundll32", "url.dll,FileProtocolHandler", uri.toString()}
-                : new String[]{"xdg-open", uri.toString()};
+        String[] cmd = switch (Os.CURRENT) {
+            case MAC -> new String[]{"open", uri.toString()};
+            case WINDOWS -> new String[]{"rundll32", "url.dll,FileProtocolHandler", uri.toString()};
+            case LINUX -> new String[]{"xdg-open", uri.toString()};
+        };
         try {
             new ProcessBuilder(cmd).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start();
             return true;

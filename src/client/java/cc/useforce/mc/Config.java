@@ -1,5 +1,6 @@
 package cc.useforce.mc;
 
+import cc.useforce.mc.core.Os;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
@@ -14,7 +15,7 @@ import java.util.List;
  * settings screen ({@link SettingsScreen}) changes it while the game runs. */
 public final class Config {
     /** The command that starts Force's frontend API. "~/" is your home. */
-    public List<String> command = List.of("~/.local/bin/force", "api");
+    public List<String> command = Os.defaultCommand(Os.CURRENT);
     /** The session list on the game screen. */
     public boolean hud = true;
     /** A toast when a session needs you or finishes, and a sound with it. */

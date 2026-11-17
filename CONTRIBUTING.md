@@ -70,6 +70,7 @@ src/main/java/cc/useforce/mc/core/      plain Java, no Minecraft (unit-tested)
   TerminalBuffer                        the screen both fill: the only thing the view draws
   Intent, Controller                    what the player wants, from any gesture; carried out in one place
   Keys, Widths                          key names as tmux knows them; character widths as tmux counts them
+  Os                                    which system: Force's default command (through WSL on Windows), Cmd on macOS
   Links                                 web links on a screen: those programs name (OSC 8), and addresses in
                                         the text, joined when they wrap onto the next line
 src/client/java/cc/useforce/mc/         Minecraft
@@ -98,7 +99,7 @@ TTF fonts on several threads at once (FreeType's TrueType hinting interpreter cr
 one FreeType library of the mod's own is used by the render thread only, with light auto-hinting.
 
 Fonts, in order: JetBrains Mono (with its real bold), Force's icons (Symbols Nerd Font Mono, cut down), DejaVu Sans
-Mono and DejaVu Sans. Emoji come in colour from the system's emoji font, else the bundled Noto Color Emoji: those no
-text font has, those marked with VS16 (⚠️), and the pictographs from U+1F000 on. Box-drawing and block characters
-are drawn as lines and blocks that meet across cells. Backgrounds are drawn before any text, so a glyph a little
-wider than its cell runs over its neighbours as in a terminal.
+Mono and DejaVu Sans. Emoji come in colour from the system's emoji font on Linux, else the bundled Noto Color Emoji:
+those no text font has, those marked with VS16 (⚠️), and the pictographs from U+1F000 on. Box-drawing and block
+characters are drawn as lines and blocks that meet across cells. Backgrounds are drawn before any text, so a glyph a
+little wider than its cell runs over its neighbours as in a terminal.

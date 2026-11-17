@@ -24,7 +24,7 @@ import java.util.List;
  * The console layout: the session list on the left, the selected session's terminal on the right, both glass over
  * the running game (it never pauses). Every key goes to the terminal, Esc included; the console key closes it,
  * Ctrl+Shift+Up/Down step through the list, a click on the list picks, the wheel scrolls the terminal, Ctrl+click
- * opens a web link.
+ * (Cmd+click on macOS) opens a web link.
  */
 public final class ConsoleScreen extends Screen implements Blur {
     private final ForceClient mod;
@@ -154,7 +154,7 @@ public final class ConsoleScreen extends Screen implements Blur {
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         double x = e.x() * scale, y = e.y() * scale;
-        if (e.button() == InputConstants.MOUSE_BUTTON_LEFT && keys.ctrl(e.modifiers()) && links != null
+        if (e.button() == InputConstants.MOUSE_BUTTON_LEFT && LinkHover.opens(keys, e.modifiers()) && links != null
                 && LinkHover.click(mod.terminal().buffer().snapshot(), links, x, y)) return true;   // a link opens
         if (x >= lx && x < lx + lw) {
             String a = list.at(y);

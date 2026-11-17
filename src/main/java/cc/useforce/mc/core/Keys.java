@@ -12,8 +12,9 @@ import java.util.Map;
  */
 public final class Keys {
     /** `named`: keys with a tmux name (Escape, Enter, Tab, Up, F5, …); `chars`: keys that are one character with
-     * Ctrl/Alt (a-z, 0-9, [ ] \ / - and space); the modifier masks of the key event. */
-    public record Table(Map<Integer, String> named, Map<Integer, Character> chars, int shift, int ctrl, int alt) {}
+     * Ctrl/Alt (a-z, 0-9, [ ] \ / - and space); the modifier masks of the key event (shift, ctrl, alt, cmd). */
+    public record Table(Map<Integer, String> named, Map<Integer, Character> chars, int shift, int ctrl, int alt,
+                        int cmd) {}
 
     private final Table t;
 
@@ -24,6 +25,7 @@ public final class Keys {
     public boolean ctrl(int mods) { return (mods & t.ctrl()) != 0; }
     public boolean shift(int mods) { return (mods & t.shift()) != 0; }
     public boolean alt(int mods) { return (mods & t.alt()) != 0; }
+    public boolean cmd(int mods) { return (mods & t.cmd()) != 0; }
 
     /** The tmux key name for a key press, or null when it is a printable key (its character comes as text). */
     public String name(int key, int mods) {
@@ -56,6 +58,6 @@ public final class Keys {
         chars.put(92, '\\');
         chars.put(47, '/');
         chars.put(45, '-');
-        return new Table(named, chars, 0x1, 0x2, 0x4);
+        return new Table(named, chars, 0x1, 0x2, 0x4, 0x8);
     }
 }

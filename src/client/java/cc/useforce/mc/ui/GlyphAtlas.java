@@ -1,5 +1,6 @@
 package cc.useforce.mc.ui;
 
+import cc.useforce.mc.core.Os;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -30,9 +31,9 @@ import static org.lwjgl.util.freetype.FreeType.*;
  * interpreter is not safe for that (a crash in {@code TT_RunIns} when many sizes are defined). Here one FreeType
  * library of our own is used by the render thread only, with light auto-hinting, which never runs that interpreter.
  * JetBrains Mono (regular, bold) first, then Force's icons (a Nerd Fonts symbols subset), DejaVu Sans Mono and
- * DejaVu Sans for what is left. Emoji come in colour from the system's emoji font (the one a terminal uses: Noto
- * Color Emoji on Linux), else the bundled Noto Color Emoji, as a terminal draws them: those no text font has, those
- * marked with VS16 (⚠️), and the pictographs from U+1F000 on.
+ * DejaVu Sans for what is left. Emoji come in colour from the system's colour emoji font on Linux, else (and on other
+ * systems) the bundled Noto Color Emoji, as a terminal draws them: those no text font has, those marked with VS16 (⚠️),
+ * and the pictographs from U+1F000 on.
  */
 public final class GlyphAtlas {
     private static final int PAGE = 1024;
@@ -52,13 +53,12 @@ public final class GlyphAtlas {
     /** Noto Color Emoji, in the mod: used when the system has no colour emoji font. */
     private static final String BUNDLED_EMOJI = "noto-color-emoji.ttf";
 
-    /** Where systems keep their colour emoji font, after the one fontconfig names. */
+    /** Where Linux systems keep their colour emoji font, after the one fontconfig names. */
     private static final String[] EMOJI_FONTS = {
             "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",                  // Debian, Ubuntu
             "/usr/share/fonts/noto/NotoColorEmoji.ttf",                           // Arch
             "/usr/share/fonts/google-noto-color-emoji-fonts/NotoColorEmoji.ttf",  // Fedora
-            "/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf",
-            "/System/Library/Fonts/Apple Color Emoji.ttc"};                      // macOS
+            "/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf"};
 
     /** A size's cell: the advance of "M", the line box, and the baseline's place in it. */
     public record Metrics(int cellW, int cellH, int baseline) {}
@@ -200,22 +200,24 @@ public final class GlyphAtlas {
         return new Glyph(page, u, v, w, h, slot.bitmap_left(), slot.bitmap_top(), advance);
     }
 
-    /** The system's colour emoji font, found once: the one fontconfig picks for "emoji", else a known place. */
+    /** The system's colour emoji font on Linux, found once: the one fontconfig picks for "emoji", else a known place. */
     private FT_Face emojiFace() {
         if (emojiLooked) return emoji;
         emojiLooked = true;
         List<String> paths = new ArrayList<>();
-        try {
-            Process p = new ProcessBuilder("fc-match", "-f", "%{file}", "emoji:color=true").redirectErrorStream(true)
-                    .start();
-            String out = new String(p.getInputStream().readAllBytes()).trim();
-            if (p.waitFor() == 0 && !out.isEmpty()) paths.add(out);
-        } catch (IOException | RuntimeException e) {
-            // no fontconfig: the known places
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        if (Os.CURRENT == Os.Kind.LINUX) {
+            try {
+                Process p = new ProcessBuilder("fc-match", "-f", "%{file}", "emoji:color=true").redirectErrorStream(true)
+                        .start();
+                String out = new String(p.getInputStream().readAllBytes()).trim();
+                if (p.waitFor() == 0 && !out.isEmpty()) paths.add(out);
+            } catch (IOException | RuntimeException e) {
+                // no fontconfig: the known places
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            paths.addAll(List.of(EMOJI_FONTS));
         }
-        paths.addAll(List.of(EMOJI_FONTS));
         try (MemoryStack stack = MemoryStack.stackPush()) {
             for (String path : paths) {
                 java.nio.file.Path file = java.nio.file.Path.of(path);
