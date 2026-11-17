@@ -66,18 +66,20 @@ public final class AppScreen extends Screen implements Blur {
         g.fill(0, 0, s.width, s.height, Theme.withAlpha(0, 0.25 * cfg.terminalOpacity / Config.DEFAULT_OPACITY));
     }
 
-    /** Where the app goes on a screen of this size (screen pixels): its grid and its top-left corner. */
-    record Layout(int cols, int rows, int x, int y, int inset, int cw, int ch) {}
+    /** Where the app goes on a screen of this size (screen pixels): the glass (gx, gy, gw, gh: the screen less the
+     * padding, edge to edge at 0) and the grid centred in it (cols × rows, its top-left corner x, y). */
+    record Layout(int cols, int rows, int x, int y, int gx, int gy, int gw, int gh, int cw, int ch) {}
 
     static Layout layout(Config cfg, int guiScale, int screenW, int screenH) {
         int px = cfg.terminalPx(guiScale);
         GlyphAtlas.Metrics m = GlyphAtlas.get().metrics(px);
+        int pad = Math.min(cfg.paddingPx(guiScale), Math.min(screenW, screenH) / 4);
+        int gw = Math.max(1, screenW - 2 * pad), gh = Math.max(1, screenH - 2 * pad);
         int inset = Math.max(px / 2, 6) / 2;                   // the glass around the cells
-        int pad = cfg.paddingPx(guiScale) + inset;
-        int w = Math.max(1, screenW - 2 * pad), h = Math.max(1, screenH - 2 * pad);
+        int w = Math.max(1, gw - 2 * inset), h = Math.max(1, gh - 2 * inset);
         int cols = Math.max(20, Math.min(500, w / m.cellW())), rows = Math.max(5, Math.min(200, h / m.cellH()));
-        return new Layout(cols, rows, pad + (w - cols * m.cellW()) / 2, pad + (h - rows * m.cellH()) / 2, inset,
-                m.cellW(), m.cellH());
+        return new Layout(cols, rows, pad + inset + (w - cols * m.cellW()) / 2, pad + inset + (h - rows * m.cellH()) / 2,
+                pad, pad, gw, gh, m.cellW(), m.cellH());
     }
 
     @Override
@@ -95,10 +97,10 @@ public final class AppScreen extends Screen implements Blur {
         app.open(grid.cols(), grid.rows());            // opens once; afterwards only follows the size
         ox = l.x();
         oy = l.y();
-        int in = l.inset();
         view.cellOpacity = Math.min(1, cfg.terminalOpacity / Config.DEFAULT_OPACITY);
         c.begin();
-        Panel.draw(c, ox - in, oy - in, grid.cols() * cw + 2 * in, grid.rows() * ch + 2 * in, cfg.terminalOpacity);
+        if (l.gx() == 0) c.fill(0, 0, l.gw(), l.gh(), Theme.withAlpha(Theme.PANEL, cfg.terminalOpacity));  // no outline
+        else Panel.draw(c, l.gx(), l.gy(), l.gw(), l.gh(), cfg.terminalOpacity);
         String problem = app.problem();
         TerminalBuffer.Snapshot s = app.snapshot();
         if (problem != null && s.cols() == 0) c.text(problem, ox, oy, px, Theme.RED, false);
