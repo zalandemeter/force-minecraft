@@ -40,14 +40,14 @@ public class ConsoleGameTest implements FabricClientGameTest {
         }
     }
 
-    /** A real world for the README's pictures: this seed's nearest cherry grove, a clear morning. */
+    /** A real world for the README's pictures: this seed's nearest eroded badlands, Force's oranges. */
     private static final String SEED = "useforce";
 
     private static void scenery(ClientGameTestContext ctx, TestSingleplayerContext world) {
-        // the ground (not the treetops) next to this seed's nearest cherry grove
+        // the ground (not the treetops) in this seed's nearest eroded badlands
         net.minecraft.core.BlockPos spot = world.getServer().computeOnServer(server -> {
             var level = server.overworld();
-            var found = level.findClosestBiome3d(b -> b.is(net.minecraft.world.level.biome.Biomes.CHERRY_GROVE),
+            var found = level.findClosestBiome3d(b -> b.is(net.minecraft.world.level.biome.Biomes.ERODED_BADLANDS),
                     net.minecraft.core.BlockPos.ZERO, 6400, 32, 64);
             if (found == null) return null;
             int x = found.getFirst().getX() + 1, z = found.getFirst().getZ();
@@ -65,8 +65,8 @@ public class ConsoleGameTest implements FabricClientGameTest {
                 // the rule's name differs between versions: one of each pair works
             }
         }
-        if (spot != null)                                                              // facing the cherry trees
-            world.getServer().runCommand("tp @a " + (spot.getX() + 0.5) + " " + spot.getY() + " " + (spot.getZ() + 0.5) + " 135 2");
+        if (spot != null)                                              // looking up at the terracotta spires
+            world.getServer().runCommand("tp @a " + (spot.getX() + 0.5) + " " + spot.getY() + " " + (spot.getZ() + 0.5) + " 135 -8");
         ctx.waitTicks(40);
         world.getConnection().waitForChunksRender();
         ctx.waitTicks(20);
@@ -124,6 +124,37 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.getInput().typeChars("echo typed into force");
         ctx.getInput().pressKey(InputConstants.KEY_RETURN);
         ctx.waitFor(mc -> count(text(mod.app().snapshot()), "typed into force") >= 2, 20 * 15);
+
+        // a web link: hovered, it is underlined with a hint; Ctrl+click opens it and is not a click for Force
+        ctx.getInput().typeChars("echo see https://useforce.cc/docs.");
+        ctx.getInput().pressKey(InputConstants.KEY_RETURN);
+        ctx.waitFor(mc -> count(text(mod.app().snapshot()), "https://useforce.cc/docs") >= 2, 20 * 15);
+        double[] at = ctx.computeOnClient(mc -> {
+            var s = mod.app().snapshot();
+            for (int r = s.rows() - 1; r >= 0; r--) {
+                String cells = cc.useforce.mc.core.Links.cells(s.lines().get(r));
+                int i = cells.indexOf("https://useforce.cc/docs");
+                if (i < 0) continue;
+                var l = cc.useforce.mc.core.Links.at(cells, r, i + 3);
+                if (l == null || !l.url().equals("https://useforce.cc/docs"))
+                    throw new AssertionError("link: " + l + " in " + cells);
+                var w = mc.getWindow();
+                var lay = AppScreen.layout(mod.config(), w.getGuiScale(), w.getWidth(), w.getHeight());
+                return new double[]{lay.x() + (i + 4) * lay.cw() + lay.cw() / 2.0, lay.y() + r * lay.ch() + lay.ch() / 2.0,
+                        w.getGuiScale()};
+            }
+            throw new AssertionError("no link on screen");
+        });
+        ctx.getInput().setCursorPos(at[0], at[1]);
+        ctx.waitTicks(5);
+        ctx.takeScreenshot("4a-app-link-hover");
+        ctx.runOnClient(mc -> {
+            boolean took = mc.gui.screen().mouseClicked(new net.minecraft.client.input.MouseButtonEvent(at[0] / at[2],
+                    at[1] / at[2], new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,
+                    InputConstants.MOD_CONTROL)), false);
+            if (!took || !(mc.gui.screen() instanceof AppScreen)) throw new AssertionError("Ctrl+click on a link");
+        });
+        ctx.getInput().setCursorPos(2, 2);
 
         // Ctrl+Space: Force's menu (the test input has no modifiers: the event goes to the screen as SDL/GLFW sends it)
         ctx.runOnClient(mc -> mc.gui.screen().keyPressed(

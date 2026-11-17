@@ -15,7 +15,7 @@ gradle_home=${GRADLE_USER_HOME:-$HOME/.gradle}
 image=force-mc-gametest
 docker build -q -t "$image" "$here/scripts/gametest" >/dev/null
 mkdir -p "$gradle_home"
-exec docker run --rm --init --user "$(id -u):$(id -g)" \
+exec docker run --rm --init --hostname laptop --user "$(id -u):$(id -g)" \
   -e HOME=/tmp/home -e USER=demo -e LOGNAME=demo -e GRADLE_USER_HOME=/gradle -e LIBGL_ALWAYS_SOFTWARE=1 \
   -e FORCE_TARBALL=/force.tar.gz -v "$FORCE_TARBALL:/force.tar.gz:ro" \
   -v "$here:/work" -v "$gradle_home:/gradle" -w /work "$image" sh -c '

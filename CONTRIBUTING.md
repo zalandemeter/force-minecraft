@@ -69,6 +69,7 @@ src/main/java/cc/useforce/mc/core/      plain Java, no Minecraft (unit-tested)
   TerminalBuffer                        the screen both fill: the only thing the view draws
   Intent, Controller                    what the player wants, from any gesture; carried out in one place
   Keys, Widths                          key names as tmux knows them; character widths as tmux counts them
+  Links                                 web links on a screen, as terminals find them (Ctrl+click opens one)
 src/client/java/cc/useforce/mc/         Minecraft
   ui/Theme, Panel                       Force's colours and the glass panels
   ui/SessionList, ui/TerminalView       widgets: draw a model / a buffer, answer "what is here"
