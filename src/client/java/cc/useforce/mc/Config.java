@@ -23,21 +23,22 @@ public final class Config {
     /** The most sessions the game-screen list shows. */
     public int hudRows = 8;
     /** Text sizes in screen pixels (12–48) for the console's terminal, its list and the game-screen list; 0 = follow
-     * Minecraft's GUI scale (which follows the display: a high-DPI screen gets larger text), times `textScale`. */
+     * Minecraft's GUI scale (which follows the display: a high-DPI screen gets larger text); Force's views' sizes
+     * times `textScale`. */
     public int terminalFontPx = 0;
     public int uiFontPx = 0;
     public int hudFontPx = 0;
-    public double textScale = 1.0;
+    public double textScale = 0.75;
 
     /** How see-through the backgrounds are, 0 (clear) to 1 (solid): Force's view (F12) and the game-screen list. */
-    public double terminalOpacity = 1.0;
+    public double terminalOpacity = 0.8;
     public double sidebarOpacity = 0.75;
     /** Blur the game behind Force's view. */
     public boolean blur = true;
     /** Where the game-screen list sits: right, left, top-right, top-left, bottom-right, bottom-left. */
     public String sidebarPosition = "right";
     /** Space between the screen's edge and Force's view, in GUI pixels (they grow with the GUI scale). */
-    public int terminalPadding = 0;
+    public int terminalPadding = 10;
     /** The modifiers of each key binding ("ctrl+alt"); the key itself is in options.txt, set in Controls. */
     public java.util.Map<String, String> keyModifiers = new java.util.HashMap<>();
 
@@ -49,12 +50,13 @@ public final class Config {
     /** Screen pixels per GUI unit × these: at GUI scale 3, 24 / 24 / 21 pixels (the console list matches its terminal). */
     private static final double TERMINAL = 8.0, UI = 8.0, HUD = 7.0;
 
-    public int terminalPx(int guiScale) { return px(terminalFontPx, TERMINAL, guiScale); }
-    public int uiPx(int guiScale) { return px(uiFontPx, UI, guiScale); }
-    public int hudPx(int guiScale) { return px(hudFontPx, HUD, guiScale); }
+    public int terminalPx(int guiScale) { return px(terminalFontPx, TERMINAL, guiScale, textScale); }
+    public int uiPx(int guiScale) { return px(uiFontPx, UI, guiScale, textScale); }
+    /** The game-screen list: Minecraft's GUI scale only (`textScale` is Force's view's text size). */
+    public int hudPx(int guiScale) { return px(hudFontPx, HUD, guiScale, 1); }
 
-    private int px(int fixed, double perUnit, int guiScale) {
-        int v = fixed > 0 ? fixed : (int) Math.round(perUnit * Math.max(1, guiScale) * (textScale > 0 ? textScale : 1));
+    private static int px(int fixed, double perUnit, int guiScale, double scale) {
+        int v = fixed > 0 ? fixed : (int) Math.round(perUnit * Math.max(1, guiScale) * (scale > 0 ? scale : 1));
         return cc.useforce.mc.ui.Theme.size(Math.max(12, Math.min(48, v)));   // a size there is a font for
     }
 
@@ -93,9 +95,9 @@ public final class Config {
         if (c.command == null || c.command.isEmpty()) c.command = new Config().command;
         if (c.keyModifiers == null) c.keyModifiers = new java.util.HashMap<>();
         if (c.sidebarPosition == null || !POSITIONS.contains(c.sidebarPosition)) c.sidebarPosition = "right";
-        c.terminalOpacity = clamp01(c.terminalOpacity, 1.0);
+        c.terminalOpacity = clamp01(c.terminalOpacity, 0.8);
         c.sidebarOpacity = clamp01(c.sidebarOpacity, 0.75);
-        if (!(c.textScale > 0) || !Double.isFinite(c.textScale)) c.textScale = 1.0;
+        if (!(c.textScale > 0) || !Double.isFinite(c.textScale)) c.textScale = 0.75;
         if (!broken) c.save();                      // a file from an older version gets the new settings, with defaults
         return c;
     }
