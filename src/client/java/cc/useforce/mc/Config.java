@@ -30,20 +30,21 @@ public final class Config {
     public double textScale = 1.0;
 
     /** How see-through the backgrounds are, 0 (clear) to 1 (solid): Force's view (F12) and the game-screen list. */
-    public double terminalOpacity = 0.86;
-    public double sidebarOpacity = 0.86;
+    public double terminalOpacity = 1.0;
+    public double sidebarOpacity = 0.75;
     /** Blur the game behind Force's view. */
     public boolean blur = true;
     /** Where the game-screen list sits: right, left, top-right, top-left, bottom-right, bottom-left. */
     public String sidebarPosition = "right";
     /** Space between the screen's edge and Force's view, in GUI pixels (they grow with the GUI scale). */
-    public int terminalPadding = 2;
+    public int terminalPadding = 0;
     /** The modifiers of each key binding ("ctrl+alt"); the key itself is in options.txt, set in Controls. */
     public java.util.Map<String, String> keyModifiers = new java.util.HashMap<>();
 
     public static final List<String> POSITIONS =
             List.of("right", "left", "top-right", "top-left", "bottom-right", "bottom-left");
-    public static final double DEFAULT_OPACITY = 0.86;
+    /** The glass the view was tuned on: below it the game shows through the darkening and the cells too. */
+    public static final double GLASS = 0.86;
 
     /** Screen pixels per GUI unit × these: at GUI scale 3, 24 / 24 / 21 pixels (the console list matches its terminal). */
     private static final double TERMINAL = 8.0, UI = 8.0, HUD = 7.0;
@@ -75,8 +76,8 @@ public final class Config {
         return Math.max(0, Math.min(200, terminalPadding)) * Math.max(1, guiScale);
     }
 
-    static double clamp01(double v) {
-        return Double.isFinite(v) ? Math.max(0, Math.min(1, v)) : DEFAULT_OPACITY;
+    static double clamp01(double v, double fallback) {
+        return Double.isFinite(v) ? Math.max(0, Math.min(1, v)) : fallback;
     }
 
     public static Config load() {
@@ -92,8 +93,8 @@ public final class Config {
         if (c.command == null || c.command.isEmpty()) c.command = new Config().command;
         if (c.keyModifiers == null) c.keyModifiers = new java.util.HashMap<>();
         if (c.sidebarPosition == null || !POSITIONS.contains(c.sidebarPosition)) c.sidebarPosition = "right";
-        c.terminalOpacity = clamp01(c.terminalOpacity);
-        c.sidebarOpacity = clamp01(c.sidebarOpacity);
+        c.terminalOpacity = clamp01(c.terminalOpacity, 1.0);
+        c.sidebarOpacity = clamp01(c.sidebarOpacity, 0.75);
         if (!(c.textScale > 0) || !Double.isFinite(c.textScale)) c.textScale = 1.0;
         if (!broken) c.save();                      // a file from an older version gets the new settings, with defaults
         return c;

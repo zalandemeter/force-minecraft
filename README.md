@@ -27,10 +27,10 @@ Force: the hosts you added with `force host add`, the states, the order and the 
 | Key | |
 |---|---|
 | `F12` | show / hide Force: the whole app, full screen. Every other key goes to Force, Esc and Ctrl+Space included; Ctrl+Shift+V pastes |
-| `F10` | show / hide the session list on the game screen: only the sessions with something going on (needs you, working, your turn, unread), host by host |
+| `F10` | the settings |
+| (unbound) | show / hide the session list on the game screen (it shows from the start; only the sessions with something going on: needs you, working, your turn, unread, host by host) |
 | (unbound) | jump to the next session that needs you, in the session view |
 | (unbound) | the session view: the native list and one session's terminal (Ctrl+Shift+↑/↓ switch) |
-| (unbound) | the settings |
 
 Keys are set in Options → Controls → Key Binds → Force, and each can be a combination: hold Ctrl, Alt or Shift while
 pressing the key (Ctrl + F12). A combination fires only with exactly its modifiers, so F12 and Ctrl + F12 can do two
@@ -46,16 +46,16 @@ terminal), else from the Noto Color Emoji the mod brings.
 
 ### Settings
 
-Mods → Force → Configure (with [Mod Menu](https://modrinth.com/mod/modmenu), which Fabulously Optimized ships), or the
-settings key. Changes show at once:
+Mods → Force → Configure (with [Mod Menu](https://modrinth.com/mod/modmenu), which Fabulously Optimized ships), or
+`F10`. Changes show at once:
 
 | Setting | Default | |
 |---|---|---|
-| Force's view: background | 86% | how solid the glass behind Force is (0% shows the game) |
-| Force's view: padding | 2 px | space around it, in GUI pixels |
+| Force's view: background | 100% | how solid the glass behind Force is (0% shows the game) |
+| Force's view: padding | 0 px | space around it, in GUI pixels (0: edge to edge) |
 | Force's view: blur the game | on | |
 | Force's view: text size | 100% | on top of Minecraft's GUI scale |
-| Session list: background | 86% | |
+| Session list: background | 75% | |
 | Session list: position | right | right, left, or a corner |
 | Session list: most sessions | 8 | |
 | Session list: show at start | on | |
