@@ -106,6 +106,7 @@ public final class AppScreen extends Screen implements Blur {
         if (problem != null && s.cols() == 0) c.text(problem, ox, oy, px, Theme.RED, false);
         else view.draw(c, ox, oy, grid.cols() * cw, grid.rows() * ch, s, px, true);
         if (problem != null && s.cols() > 0) c.text(problem, ox, oy + grid.rows() * ch - ch, px, Theme.RED, false);
+        LinkHover.draw(c, s, grid(), px, mx * scale, my * scale);   // the link under the mouse: Ctrl+click opens it
         c.end();
     }
 
@@ -168,8 +169,13 @@ public final class AppScreen extends Screen implements Blur {
         return true;
     }
 
+    private LinkHover.Grid grid() { return new LinkHover.Grid(ox, oy, cw, ch); }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
+        if (e.button() == InputConstants.MOUSE_BUTTON_LEFT && keys.ctrl(e.modifiers())) {   // Ctrl+click: a link opens
+            if (LinkHover.click(mod.app().snapshot(), grid(), e.x() * scale, e.y() * scale)) return true;
+        }
         held = xtermButton(e.button());
         return report(held, true, false, e.x(), e.y(), e.modifiers());
     }

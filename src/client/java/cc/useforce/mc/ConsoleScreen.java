@@ -4,6 +4,7 @@ import cc.useforce.mc.core.ForceModel;
 import cc.useforce.mc.core.Intent;
 import cc.useforce.mc.core.Keys;
 import cc.useforce.mc.core.TerminalBackend;
+import cc.useforce.mc.core.TerminalBuffer;
 import cc.useforce.mc.ui.Canvas;
 import cc.useforce.mc.ui.Panel;
 import cc.useforce.mc.ui.SessionList;
@@ -22,7 +23,8 @@ import java.util.List;
 /**
  * The console layout: the session list on the left, the selected session's terminal on the right, both glass over
  * the running game (it never pauses). Every key goes to the terminal, Esc included; the console key closes it,
- * Ctrl+Shift+Up/Down step through the list, a click on the list picks, the wheel scrolls the terminal.
+ * Ctrl+Shift+Up/Down step through the list, a click on the list picks, the wheel scrolls the terminal, Ctrl+click
+ * opens a web link.
  */
 public final class ConsoleScreen extends Screen implements Blur {
     private final ForceClient mod;
@@ -32,6 +34,10 @@ public final class ConsoleScreen extends Screen implements Blur {
     private final Keys keys = new Keys(KeyTable.create());
     private int lx, ly, lw, lh, tx, ty, tw, th;     // screen pixels
     private int scale = 1;                          // screen pixels per GUI unit
+    private LinkHover.Grid links;                   // where the terminal's cells were drawn: its links' places
+
+    /** Where the terminal's cells were last drawn (null when they were not): for the game tests. */
+    LinkHover.Grid linkGrid() { return links; }
 
     ConsoleScreen(ForceClient mod) {
         super(Component.translatable("force_mc.console.title"));
@@ -91,12 +97,17 @@ public final class ConsoleScreen extends Screen implements Blur {
         c.text(title, tx + px / 2, ty + px / 2, px, cur == null ? Theme.DIM : Theme.color(cur), cur != null);
         TerminalBackend term = mod.terminal();
         String problem = term.problem();
+        links = null;
         int vy = ty + head, vh = th - head - px / 2, vx = tx + px / 2, vw = tw - px;
         if (problem != null) c.text(problem, vx, vy, px, Theme.RED, false);
         else {
             TerminalView.Grid grid = TerminalView.fit(c, vw, vh, tpx);
             term.resize(grid.cols(), grid.rows());          // only sent when it changed
-            view.draw(c, vx, vy, vw, vh, term.buffer().snapshot(), tpx);
+            TerminalBuffer.Snapshot snap = term.buffer().snapshot();
+            view.draw(c, vx, vy, vw, vh, snap, tpx);
+            float k = TerminalView.scale(vw, vh, snap, tpx);
+            links = new LinkHover.Grid(vx, vy, TerminalView.cellW(c, tpx) * k, TerminalView.cellH(tpx) * k);
+            LinkHover.draw(c, snap, links, tpx, mx * scale, my * scale);   // the link under the mouse
         }
         c.end();
     }
@@ -143,6 +154,8 @@ public final class ConsoleScreen extends Screen implements Blur {
     @Override
     public boolean mouseClicked(MouseButtonEvent e, boolean doubleClick) {
         double x = e.x() * scale, y = e.y() * scale;
+        if (e.button() == InputConstants.MOUSE_BUTTON_LEFT && keys.ctrl(e.modifiers()) && links != null
+                && LinkHover.click(mod.terminal().buffer().snapshot(), links, x, y)) return true;   // a link opens
         if (x >= lx && x < lx + lw) {
             String a = list.at(y);
             if (a != null) mod.controller().handle(new Intent.Select(a));

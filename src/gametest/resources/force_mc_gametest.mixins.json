@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "cc.useforce.mc.gametest",
+	"compatibilityLevel": "JAVA_21",
+	"client": ["DefaultSkinMixin"],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

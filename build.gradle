@@ -6,6 +6,8 @@ base {
 	archivesName = 'force-minecraft'
 }
 
+version = "${project.mod_version}+${project.minecraft_version}"
+
 repositories {
 	mavenCentral()
 	// Mod Menu's API, for its "Configure" button (compile only: the mod runs without it)
