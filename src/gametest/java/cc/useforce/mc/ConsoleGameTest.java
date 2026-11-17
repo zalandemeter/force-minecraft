@@ -7,6 +7,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.client.input.KeyEvent;
 
 /**
@@ -19,8 +20,13 @@ public class ConsoleGameTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         ctx.getInput().resizeWindow(1600, 900);
-        try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
+        try (TestSingleplayerContext world = ctx.worldBuilder().setUseConsistentSettings(false).adjustSettings(w -> {
+            w.setSeed(SEED);
+            w.setGameMode(WorldCreationUiState.SelectedGameMode.CREATIVE);
+            w.setAllowCommands(true);
+        }).create()) {
             world.getConnection().waitForChunksRender();
+            scenery(ctx, world);
             ForceClient mod = ForceClient.instance();
             ctx.waitFor(mc -> mod.model().status() == ForceModel.Status.CONNECTED
                     && mod.model().state().live().size() >= 3, 20 * 60);
@@ -32,6 +38,38 @@ public class ConsoleGameTest implements FabricClientGameTest {
             settings(ctx, mod);
             combination(ctx, mod);
         }
+    }
+
+    /** A real world for the README's pictures: this seed's nearest cherry grove, a clear morning. */
+    private static final String SEED = "useforce";
+
+    private static void scenery(ClientGameTestContext ctx, TestSingleplayerContext world) {
+        // the ground (not the treetops) next to this seed's nearest cherry grove
+        net.minecraft.core.BlockPos spot = world.getServer().computeOnServer(server -> {
+            var level = server.overworld();
+            var found = level.findClosestBiome3d(b -> b.is(net.minecraft.world.level.biome.Biomes.CHERRY_GROVE),
+                    net.minecraft.core.BlockPos.ZERO, 6400, 32, 64);
+            if (found == null) return null;
+            int x = found.getFirst().getX() + 1, z = found.getFirst().getZ();
+            level.getChunk(x >> 4, z >> 4);                                            // generated, for its heights
+            int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+            return new net.minecraft.core.BlockPos(x, y, z);
+        });
+        System.err.println("SCENERY " + spot);
+        for (String c : new String[]{"gamerule sendCommandFeedback false", "gamerule send_command_feedback false",
+                "weather clear", "time set 1500", "gamerule doDaylightCycle false",
+                "gamerule advance_time false", "gamerule doWeatherCycle false", "gamerule advance_weather false"}) {
+            try {
+                world.getServer().runCommand(c);
+            } catch (RuntimeException | AssertionError e) {
+                // the rule's name differs between versions: one of each pair works
+            }
+        }
+        if (spot != null)                                                              // facing the cherry trees
+            world.getServer().runCommand("tp @a " + (spot.getX() + 0.5) + " " + spot.getY() + " " + (spot.getZ() + 0.5) + " 135 2");
+        ctx.waitTicks(40);
+        world.getConnection().waitForChunksRender();
+        ctx.waitTicks(20);
     }
 
     /** The session view (native list + one session's terminal, cells mode). */
@@ -122,11 +160,8 @@ public class ConsoleGameTest implements FabricClientGameTest {
 
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
-        // seen from the front, for the README: the player and the list beside them
-        ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
         ctx.waitTicks(10);
         ctx.takeScreenshot("7-game-screen-active-only");
-        ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
     }
 
     /** The settings (Mod Menu's Configure, or a key): see-through glass, padding, the list elsewhere. */

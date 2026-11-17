@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.UUID;
 
-/** The game tests' offline player wears the maintainer's skin (slim arms) in the README's pictures. Tests only. */
+/** The game tests' offline player has the maintainer's arms (slim, in their skin) in the README's pictures. Tests only. */
 @Mixin(DefaultPlayerSkin.class)
 public abstract class DefaultSkinMixin {
     private static final PlayerSkin README = PlayerSkin.insecure(
