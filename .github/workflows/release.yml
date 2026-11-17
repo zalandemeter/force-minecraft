@@ -1,0 +1,159 @@
+# A release is a tag: `git tag vX.Y.Z && git push origin vX.Y.Z` on a commit of main. The tag is the version
+# (nothing in the repository holds it). The workflow checks the commit (on main, newer than every release, its CI
+# passed), builds one jar per Minecraft version (force-minecraft-X.Y.Z+<minecraft>.jar) with its .sha256, attests
+# their provenance, and publishes a GitHub Release whose notes list the merged pull requests. With a MODRINTH_TOKEN
+# secret and a MODRINTH_PROJECT_ID variable it uploads the jars to Modrinth too, one version per Minecraft version.
+#
+# A pull request that changes this file runs the same builds as 0.0.0 and publishes nothing.
+name: Release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+
+permissions:
+  contents: read
+
+env:
+  # the tag's version for a release; a dry run (pull request) builds 0.0.0
+  VERSION: ${{ github.event_name == 'push' && github.ref_name || 'v0.0.0' }}
+
+jobs:
+  check:
+    name: The tag can be released
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0               # main and every tag
+      - name: On main, newer than every release
+        run: |
+          git fetch -q origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+            || { echo "::error::$GITHUB_REF_NAME is not on main: tag a commit of main"; exit 1; }
+          newest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)"
+          [[ "$newest" == "$GITHUB_REF_NAME" ]] \
+            || { echo "::error::$GITHUB_REF_NAME is not newer than every release ($newest is)"; exit 1; }
+      - name: The commit's CI passed (waits for it while it runs)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # the builds and game tests ran on this commit when it reached main (build.yml); not run again here
+          for _ in $(seq 1 30); do
+            id="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml --commit "$GITHUB_SHA" --event push \
+                  --limit 1 --json databaseId -q '.[0].databaseId')"
+            [[ -n "$id" ]] && break
+            sleep 10
+          done
+          [[ -n "$id" ]] || { echo "::error::no CI run for $GITHUB_SHA on main"; exit 1; }
+          gh run watch "$id" --repo "$GITHUB_REPOSITORY" --interval 20 --exit-status >/dev/null \
+            || { echo "::error::CI on $GITHUB_SHA did not pass (run $id): fix main, then tag a newer commit"; exit 1; }
+          echo "CI passed: run $id"
+
+  jar:
+    name: jar (${{ matrix.mc.minecraft }})
+    needs: [check]
+    if: always() && (needs.check.result == 'success' || github.event_name == 'pull_request')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    strategy:
+      matrix:
+        mc:
+          - { minecraft: "26.2", fabric_api: "0.161.0+26.2" }
+          - { minecraft: "26.3", fabric_api: "0.166.2+26.3" }
+    steps:
+      - uses: actions/checkout@v6
+      - uses: gradle/actions/wrapper-validation@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: Build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build -Pmod_version="${VERSION#v}" \
+            -Pminecraft_version=${{ matrix.mc.minecraft }} -Pfabric_api_version=${{ matrix.mc.fabric_api }}
+          mkdir -p dist
+          jar="force-minecraft-${VERSION#v}+${{ matrix.mc.minecraft }}.jar"
+          cp "build/libs/$jar" dist/
+          (cd dist && sha256sum "$jar" > "$jar.sha256" && cat "$jar.sha256")
+      - uses: actions/attest-build-provenance@v2
+        if: github.event_name == 'push'
+        with:
+          subject-path: dist/*.jar
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jar-${{ matrix.mc.minecraft }}
+          path: dist/
+
+  publish:
+    name: GitHub Release
+    needs: [jar]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: jar-*
+          merge-multiple: true
+          path: dist
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          gh release create "$VERSION" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Force ${VERSION#v}" --generate-notes
+
+  modrinth:
+    name: Modrinth
+    needs: [publish]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: jar-*
+          merge-multiple: true
+          path: dist
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+        run: |
+          if [[ -z "$MODRINTH_TOKEN" || -z "$MODRINTH_PROJECT_ID" ]]; then
+            echo "::notice::no MODRINTH_TOKEN secret or MODRINTH_PROJECT_ID variable: not uploaded to Modrinth"
+            exit 0
+          fi
+          notes="$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json body -q .body)"
+          for jar in dist/*.jar; do
+            name="$(basename "$jar")"
+            mc="${name##*+}"; mc="${mc%.jar}"
+            jq -n --arg project "$MODRINTH_PROJECT_ID" --arg number "${VERSION#v}+$mc" \
+              --arg name "Force ${VERSION#v} for Minecraft $mc" --arg mc "$mc" --arg notes "$notes" '{
+                project_id: $project, version_number: $number, name: $name, changelog: $notes,
+                game_versions: [$mc], loaders: ["fabric"], version_type: "release", featured: true,
+                dependencies: [
+                  {project_id: "P7dR8mSH", dependency_type: "required"},
+                  {project_id: "mOgUt4GM", dependency_type: "optional"}],
+                file_parts: ["file"], primary_file: "file"}' > data.json
+            curl -fsS -X POST https://api.modrinth.com/v2/version \
+              -H "Authorization: $MODRINTH_TOKEN" \
+              -H "User-Agent: $GITHUB_REPOSITORY (release workflow)" \
+              -F "data=<data.json" -F "file=@$jar;type=application/java-archive" | jq -r '"uploaded \(.version_number): \(.id)"'
+          done

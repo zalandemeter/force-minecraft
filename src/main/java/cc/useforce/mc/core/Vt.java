@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -24,12 +25,14 @@ public final class Vt {
     static final class Cell {
         String ch = " ";
         int fg = -1, bg = -1, attrs;
+        String link;
 
         void set(Cell o) {
             ch = o.ch;
             fg = o.fg;
             bg = o.bg;
             attrs = o.attrs;
+            link = o.link;
         }
 
         void clear(int bgColour) {
@@ -37,6 +40,7 @@ public final class Vt {
             fg = -1;
             bg = bgColour;
             attrs = 0;
+            link = null;
         }
     }
 
@@ -55,12 +59,14 @@ public final class Vt {
     private boolean autowrap = true, cursorVisible = true, appCursor, bracketedPaste, sgrMouse, focusEvents,
             insert, origin;
     private int mouseMode;                               // 0, 1000 (clicks), 1002 (+ drags), 1003 (+ moves)
+    private String link;                                 // the current OSC 8 hyperlink, or null
     private long version;
     // the parser
     private enum State { GROUND, ESC, ESC_INTER, CSI, OSC, OSC_ESC, STRING, STRING_ESC }
     private State state = State.GROUND;
     private final StringBuilder params = new StringBuilder();
     private final StringBuilder osc = new StringBuilder();
+    private boolean oscOverflow;
     private char escInter;
     private int utf8Need, utf8Cp;
 
@@ -185,13 +191,14 @@ public final class Vt {
             }
             case OSC -> {
                 if (b == 0x07) {
-                    osc();
+                    if (!oscOverflow) osc();
                     state = State.GROUND;
                 } else if (b == 0x1B) state = State.OSC_ESC;
-                else osc.append((char) b);
+                else if (osc.length() < 8192) osc.append((char) b);
+                else oscOverflow = true;
             }
             case OSC_ESC -> {
-                if (b == '\\') osc();
+                if (b == '\\' && !oscOverflow) osc();
                 state = State.GROUND;
             }
             case STRING -> {                               // DCS, SOS, PM, APC: skipped to the ST
@@ -242,6 +249,7 @@ public final class Vt {
             }
             case ']' -> {
                 osc.setLength(0);
+                oscOverflow = false;
                 state = State.OSC;
             }
             case 'P', 'X', '^', '_' -> state = State.STRING;
@@ -294,12 +302,14 @@ public final class Vt {
         c.fg = fg;
         c.bg = bg;
         c.attrs = attrs;
+        c.link = link;
         if (w == 2) {
             Cell t = screen[cy][cx + 1];
             t.ch = WIDE_TAIL;
             t.fg = fg;
             t.bg = bg;
             t.attrs = attrs;
+            t.link = link;
         }
         cx += w;
         if (cx >= cols) {
@@ -401,6 +411,7 @@ public final class Vt {
     private void reset() {
         fg = bg = -1;
         attrs = 0;
+        link = null;
         top = 0;
         bottom = rows - 1;
         cx = cy = 0;
@@ -686,9 +697,16 @@ public final class Vt {
 
     // --- OSC ------------------------------------------------------------------------------------------------
     private void osc() {
-        String s = osc.toString();
+        // the buffer holds bytes 0–255 as chars: decode them as UTF-8
+        String s = new String(osc.toString().getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
         int semi = s.indexOf(';');
         String code = semi < 0 ? s : s.substring(0, semi), arg = semi < 0 ? "" : s.substring(semi + 1);
+        if (code.equals("8")) {                                       // OSC 8 hyperlink: 8;params;URI
+            int u = arg.indexOf(';');
+            String uri = u < 0 ? "" : arg.substring(u + 1);
+            link = !uri.isEmpty() && uri.length() <= 4096 ? uri : null;
+            return;
+        }
         switch (code) {
             case "10" -> {
                 if (arg.equals("?")) answer("\033]10;" + rgb(DEFAULT_FG) + "\033\\");
@@ -699,7 +717,7 @@ public final class Vt {
             case "12" -> {
                 if (arg.equals("?")) answer("\033]12;" + rgb(DEFAULT_FG) + "\033\\");
             }
-            default -> { }                                             // titles, clipboard, links: not kept
+            default -> { }                                             // titles, clipboard: not kept
         }
     }
 
@@ -722,7 +740,8 @@ public final class Vt {
             Cell style = null;
             for (int x = 0; x < cols; x++) {
                 Cell c = screen[y][x];
-                if (style != null && (c.fg != style.fg || c.bg != style.bg || c.attrs != style.attrs)) {
+                if (style != null && (c.fg != style.fg || c.bg != style.bg || c.attrs != style.attrs
+                        || !Objects.equals(c.link, style.link))) {
                     runs.add(run(text.toString(), style));
                     text.setLength(0);
                 }
@@ -738,6 +757,6 @@ public final class Vt {
     private static TerminalBuffer.Run run(String text, Cell s) {
         return new TerminalBuffer.Run(text, s.fg < 0 ? null : s.fg, s.bg < 0 ? null : s.bg, (s.attrs & BOLD) != 0,
                 (s.attrs & ITALIC) != 0, (s.attrs & UNDERLINE) != 0, (s.attrs & REVERSE) != 0,
-                (s.attrs & DIM) != 0);
+                (s.attrs & DIM) != 0, s.link);
     }
 }

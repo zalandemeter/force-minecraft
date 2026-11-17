@@ -35,6 +35,12 @@ public final class TerminalView {
         return new Grid(Math.max(20, w / cellW(c, px)), Math.max(5, h / cellH(px)));
     }
 
+    /** How much a screen is scaled down to fit an area w × h (1: it fits as it is). */
+    public static float scale(int w, int h, TerminalBuffer.Snapshot s, int px) {
+        if (s.cols() == 0 || s.rows() == 0) return 1f;
+        return Math.min(1f, Math.min((float) w / (s.cols() * cellW(null, px)), (float) h / (s.rows() * cellH(px))));
+    }
+
     public void draw(Canvas c, int x, int y, int w, int h, TerminalBuffer.Snapshot s, int px) {
         draw(c, x, y, w, h, s, px, false);
     }
@@ -44,7 +50,7 @@ public final class TerminalView {
         if (!glass) c.fill(x, y, w, h, Theme.TERM_BG);
         if (s.cols() == 0 || s.rows() == 0) return;
         int cw = cellW(c, px), ch = cellH(px);
-        float scale = Math.min(1f, Math.min((float) w / (s.cols() * cw), (float) h / (s.rows() * ch)));
+        float scale = scale(w, h, s, px);
         var pose = c.g.pose();
         pose.pushMatrix();
         pose.translate(x, y);

@@ -12,7 +12,12 @@ import java.util.List;
  */
 public final class TerminalBuffer {
     public record Run(String text, Integer fg, Integer bg, boolean bold, boolean italic, boolean underline,
-                      boolean reverse, boolean dim) {}
+                      boolean reverse, boolean dim, String link) {
+        public Run(String text, Integer fg, Integer bg, boolean bold, boolean italic, boolean underline,
+                   boolean reverse, boolean dim) {
+            this(text, fg, bg, bold, italic, underline, reverse, dim, null);
+        }
+    }
 
     public record Snapshot(int cols, int rows, List<List<Run>> lines, int cursorX, int cursorY, boolean cursorVisible,
                            int offset, long version) {}

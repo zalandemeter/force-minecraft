@@ -3,7 +3,7 @@
 	"id": "force_mc",
 	"version": "${version}",
 	"name": "Force",
-	"description": "Your Force sessions (Claude Code, OpenCode, shells) inside Minecraft: who needs you, toasts, and a terminal to answer them.",
+	"description": "Your coding agents, inside Minecraft. Press F12 to see and answer your Claude Code and OpenCode sessions without leaving the game. Needs Force (useforce.cc).",
 	"authors": ["Force contributors"],
 	"contact": {
 		"homepage": "https://useforce.cc",
@@ -11,6 +11,7 @@
 		"issues": "https://github.com/zalandemeter/force-minecraft/issues"
 	},
 	"license": "MIT",
+	"icon": "assets/force_mc/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": ["cc.useforce.mc.ForceClient"],
