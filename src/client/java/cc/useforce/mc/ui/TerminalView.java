@@ -49,24 +49,32 @@ public final class TerminalView {
         pose.pushMatrix();
         pose.translate(x, y);
         if (scale < 1f) pose.scale(scale, scale);       // the session is bigger than asked (another terminal): fit
-        for (int row = 0; row < s.rows() && row < s.lines().size(); row++) {
-            int col = 0, ry = row * ch;
-            for (TerminalBuffer.Run r : s.lines().get(row)) {
-                int len = cells(r.text());
-                int fg = r.fg() != null ? 0xFF000000 | r.fg() : Theme.TERM_FG;
-                Integer bg = r.bg();
-                if (r.reverse()) {
-                    int old = fg;
-                    fg = bg != null ? 0xFF000000 | bg : 0xFF212121;
-                    bg = old & 0xFFFFFF;
+        // backgrounds first, then the text, as a terminal does: a glyph a little wider than its cell (an icon, an
+        // emoji) runs over its neighbours instead of being cut by their backgrounds
+        for (int pass = 0; pass < 2; pass++) {
+            for (int row = 0; row < s.rows() && row < s.lines().size(); row++) {
+                int col = 0, ry = row * ch;
+                for (TerminalBuffer.Run r : s.lines().get(row)) {
+                    int len = cells(r.text());
+                    int fg = r.fg() != null ? 0xFF000000 | r.fg() : Theme.TERM_FG;
+                    Integer bg = r.bg();
+                    if (r.reverse()) {
+                        int old = fg;
+                        fg = bg != null ? 0xFF000000 | bg : 0xFF212121;
+                        bg = old & 0xFFFFFF;
+                    }
+                    if (r.dim()) fg = (fg & 0xFF000000) | ((fg >> 1) & 0x7F7F7F);
+                    if (pass == 0) {
+                        if (bg != null && !(glass && (bg == 0x262626 || bg == 0x212121)))
+                            c.fill(col * cw, ry, len * cw, ch, glass ? Theme.withAlpha(bg, cellOpacity) : 0xFF000000 | bg);
+                    } else {
+                        drawRun(c, r.text(), col, ry, cw, px, fg, r.bold());
+                        if (r.underline())
+                            c.fill(col * cw, ry + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12),
+                                    len * cw, Math.max(1, px / 14), fg);
+                    }
+                    col += len;
                 }
-                if (r.dim()) fg = (fg & 0xFF000000) | ((fg >> 1) & 0x7F7F7F);
-                if (bg != null && !(glass && (bg == 0x262626 || bg == 0x212121)))
-                    c.fill(col * cw, ry, len * cw, ch, glass ? Theme.withAlpha(bg, cellOpacity) : 0xFF000000 | bg);
-                drawRun(c, r.text(), col, ry, cw, px, fg, r.bold());
-                if (r.underline()) c.fill(col * cw, ry + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12),
-                        len * cw, Math.max(1, px / 14), fg);
-                col += len;
             }
         }
         if (s.cursorVisible() && (System.currentTimeMillis() / 530) % 2 == 0)
