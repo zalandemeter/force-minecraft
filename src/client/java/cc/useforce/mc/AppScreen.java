@@ -63,7 +63,7 @@ public final class AppScreen extends Screen implements Blur {
     /** The game behind Force's views: blurred (a setting), and darkened as much as the glass is solid. */
     static void background(Screen s, GuiGraphicsExtractor g, Config cfg) {
         if (cfg.blur) ((Blur) s).blur(g);
-        g.fill(0, 0, s.width, s.height, Theme.withAlpha(0, 0.25 * cfg.terminalOpacity / Config.DEFAULT_OPACITY));
+        g.fill(0, 0, s.width, s.height, Theme.withAlpha(0, 0.25 * Math.min(1, cfg.terminalOpacity / Config.GLASS)));
     }
 
     /** Where the app goes on a screen of this size (screen pixels): the glass (gx, gy, gw, gh: the screen less the
@@ -97,7 +97,7 @@ public final class AppScreen extends Screen implements Blur {
         app.open(grid.cols(), grid.rows());            // opens once; afterwards only follows the size
         ox = l.x();
         oy = l.y();
-        view.cellOpacity = Math.min(1, cfg.terminalOpacity / Config.DEFAULT_OPACITY);
+        view.cellOpacity = Math.min(1, cfg.terminalOpacity / Config.GLASS);
         c.begin();
         if (l.gx() == 0) c.fill(0, 0, l.gw(), l.gh(), Theme.withAlpha(Theme.PANEL, cfg.terminalOpacity));  // no outline
         else Panel.draw(c, l.gx(), l.gy(), l.gw(), l.gh(), cfg.terminalOpacity);
