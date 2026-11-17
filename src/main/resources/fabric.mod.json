@@ -3,7 +3,7 @@
 	"id": "force_mc",
 	"version": "${version}",
 	"name": "Force",
-	"description": "Your coding agents, inside Minecraft. Force's whole cockpit on F12 (Claude Code, OpenCode and shells, on this machine and your servers), a list of the sessions that need you on the game screen, and a toast when one finishes. Needs Force (useforce.cc).",
+	"description": "Your coding agents, inside Minecraft. Press F12 to see and answer your Claude Code and OpenCode sessions without leaving the game. Needs Force (useforce.cc).",
 	"authors": ["Force contributors"],
 	"contact": {
 		"homepage": "https://useforce.cc",

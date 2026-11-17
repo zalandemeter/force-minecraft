@@ -7,5 +7,6 @@
 	"entrypoints": {
 		"fabric-client-gametest": ["cc.useforce.mc.ConsoleGameTest"]
 	},
+	"mixins": ["force_mc_gametest.mixins.json"],
 	"depends": {"force_mc": "*"}
 }

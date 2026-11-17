@@ -115,7 +115,7 @@ jobs:
         run: |
           ls -la dist
           gh release create "$VERSION" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag \
-            --title "Force for Minecraft ${VERSION#v}" --generate-notes
+            --title "Force ${VERSION#v}" --generate-notes
 
   modrinth:
     name: Modrinth
@@ -145,7 +145,7 @@ jobs:
             name="$(basename "$jar")"
             mc="${name##*+}"; mc="${mc%.jar}"
             jq -n --arg project "$MODRINTH_PROJECT_ID" --arg number "${VERSION#v}+$mc" \
-              --arg name "Force for Minecraft ${VERSION#v} ($mc)" --arg mc "$mc" --arg notes "$notes" '{
+              --arg name "Force ${VERSION#v} for Minecraft $mc" --arg mc "$mc" --arg notes "$notes" '{
                 project_id: $project, version_number: $number, name: $name, changelog: $notes,
                 game_versions: [$mc], loaders: ["fabric"], version_type: "release", featured: true,
                 dependencies: [

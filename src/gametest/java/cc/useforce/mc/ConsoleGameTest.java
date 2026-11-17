@@ -122,8 +122,11 @@ public class ConsoleGameTest implements FabricClientGameTest {
 
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
+        // seen from the front, for the README: the player and the list beside them
+        ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
         ctx.waitTicks(10);
         ctx.takeScreenshot("7-game-screen-active-only");
+        ctx.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
     }
 
     /** The settings (Mod Menu's Configure, or a key): see-through glass, padding, the list elsewhere. */

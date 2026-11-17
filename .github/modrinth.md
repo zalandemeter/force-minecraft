@@ -1,4 +1,4 @@
-![Force for Minecraft](https://raw.githubusercontent.com/zalandemeter/force-minecraft/main/.github/assets/banner.webp)
+![Force](https://raw.githubusercontent.com/zalandemeter/force-minecraft/main/.github/assets/banner.webp)
 
 **Your coding agents, inside Minecraft.** Press F12 and [Force](https://useforce.cc), the code cockpit, opens over the
 game: every Claude Code, OpenCode and shell session you run, on this machine and your servers. Answer the one that

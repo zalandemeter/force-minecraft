@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://useforce.cc"><img src=".github/assets/banner.webp" alt="Force for Minecraft: your coding agents, inside Minecraft" width="100%"></a>
+  <a href="https://useforce.cc"><img src=".github/assets/banner.webp" alt="Force: your coding agents, inside Minecraft" width="100%"></a>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@ you installed: nothing is sent anywhere else.
   key can be a combination, set in Minecraft's own Controls.
 
 <p align="center">
-  <img src=".github/assets/list.webp" alt="The game screen with Force's list in the corner: one session, web, working" width="49%">
+  <img src=".github/assets/list.webp" alt="A player on the game screen, Force's list beside them: one session, web, working" width="49%">
   <img src=".github/assets/settings.webp" alt="The mod's settings: background, padding, blur and text size for Force's view; background, position and length for the session list; toasts" width="49%">
 </p>
 
