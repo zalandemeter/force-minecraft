@@ -134,11 +134,12 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.takeScreenshot("8-settings");
         ctx.runOnClient(mc -> {
             Config c = mod.config();
-            c.terminalOpacity = 0.35;
-            c.sidebarOpacity = 0.2;
+            c.terminalOpacity = 0.8;
+            c.sidebarOpacity = 0.6;
             c.sidebarPosition = "top-left";
-            c.terminalPadding = 24;
-            c.blur = false;
+            c.terminalPadding = 10;
+            c.textScale = 0.75;
+            c.blur = true;
             mc.gui.setScreen(null);
         });
         ctx.waitFor(mc -> mc.gui.screen() == null, 20 * 5);
@@ -147,7 +148,11 @@ public class ConsoleGameTest implements FabricClientGameTest {
         ctx.getInput().pressKey(InputConstants.KEY_F12);
         ctx.waitForScreen(AppScreen.class);
         ctx.waitTicks(20);
-        ctx.takeScreenshot("10-app-clear-padded");
+        // Alt+1: the agent's session, for the README's picture
+        ctx.runOnClient(mc -> mc.gui.screen().keyPressed(new KeyEvent(InputConstants.KEY_1, 0, InputConstants.MOD_ALT)));
+        waitApp(ctx, mod, "alt-1", t -> t.contains("4 passed"));
+        ctx.waitTicks(20);
+        ctx.takeScreenshot("10-app-glass-padded");
         // no padding: the glass runs to the screen's edges
         ctx.runOnClient(mc -> {
             mod.config().terminalPadding = 0;
@@ -168,6 +173,7 @@ public class ConsoleGameTest implements FabricClientGameTest {
             c.sidebarOpacity = d.sidebarOpacity;
             c.sidebarPosition = d.sidebarPosition;
             c.terminalPadding = d.terminalPadding;
+            c.textScale = d.textScale;
             c.blur = d.blur;
         });
     }

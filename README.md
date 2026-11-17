@@ -1,58 +1,97 @@
-# Force for Minecraft
+<p align="center">
+  <a href="https://useforce.cc"><img src=".github/assets/banner.webp" alt="Force for Minecraft: your coding agents, inside Minecraft" width="100%"></a>
+</p>
 
-Your [Force](https://useforce.cc) sessions (Claude Code, OpenCode, shells) inside Minecraft: who needs you on the
-game screen, a toast when a session needs you or finishes, and a console to answer it without leaving the game.
+<p align="center">
+  <a href="https://github.com/zalandemeter/force-minecraft/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/zalandemeter/force-minecraft/build.yml?branch=main&style=flat-square&label=CI" alt="CI"></a>
+  <a href="https://github.com/zalandemeter/force-minecraft/releases/latest"><img src="https://img.shields.io/github/v/release/zalandemeter/force-minecraft?style=flat-square&color=d97757&label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Minecraft-26.2%20%C2%B7%2026.3-3c3c3c?style=flat-square" alt="Minecraft 26.2 · 26.3">
+  <img src="https://img.shields.io/badge/loader-Fabric-3c3c3c?style=flat-square" alt="Fabric">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-3c3c3c?style=flat-square" alt="MIT licence"></a>
+  <a href="https://useforce.cc"><img src="https://img.shields.io/badge/useforce.cc-website-d97757?style=flat-square" alt="Website"></a>
+</p>
 
-A client-side Fabric mod. It is a frontend of Force, not a copy: it talks to your installed Force through
-`force api` (Force SPEC §54). F12 opens **the whole Force app** over the running game: the same program a terminal
-runs (its sidebar, header, Ctrl+Space menu, dialogs, Alt+N, hosts, Chuck), drawn by the mod with crisp text on
-blurred glass instead of terminal blocks. The session list on the game screen and the toasts come from the same
-Force: the hosts you added with `force host add`, the states, the order and the unread marks are Force's own.
+<p align="center">
+  <b>Your coding agents, inside Minecraft.</b><br>
+  Press F12 and <a href="https://useforce.cc">Force</a>, the code cockpit, opens over the game: every Claude Code,
+  OpenCode and shell session you run, on this machine and your servers. Answer the one that needs you, then go back
+  to playing.
+</p>
 
-![F12: the whole Force app over the game](docs/screenshots/app.png)
-![Force's menu (Ctrl+Space)](docs/screenshots/app-menu.png)
-![The session list on the game screen](docs/screenshots/game-screen.png)
+<p align="center">
+  <a href="https://useforce.cc">Force</a> ·
+  <a href="https://github.com/zalandemeter/force-minecraft/releases/latest">Download</a> ·
+  <a href="https://github.com/zalandemeter/force-minecraft/issues/new">Report&nbsp;an&nbsp;issue</a>
+</p>
 
-(Screenshots from the client game tests, against a demo Force.)
+<p align="center">
+  <img src=".github/assets/app.webp" alt="Force's cockpit on F12 over a Minecraft world: the session list on the left, a Claude Code session with a diff on the right" width="100%">
+</p>
 
-## Requirements
+## Install
 
-- Force with `force api` (Linux), installed as usual: `curl -fsSL https://useforce.cc/install.sh | sh`
-- Minecraft 26.2, Fabric Loader 0.20.1+, Fabric API. Works on its own and inside
-  [Fabulously Optimized](https://modrinth.com/modpack/fabulously-optimized) 14.1.2, whose versions it follows.
-- Java 25 (Minecraft 26.2's).
+1. Install Force, if you don't have it yet, and start a session or two:
 
-## Use
+   ```sh
+   curl -fsSL https://useforce.cc/install.sh | sh
+   force
+   ```
+
+2. Put the mod's jar for your Minecraft version (`force-minecraft-X.Y.Z+26.2.jar` or `…+26.3.jar`, from the
+   [latest release](https://github.com/zalandemeter/force-minecraft/releases/latest)) into your `mods` folder,
+   with [Fabric API](https://modrinth.com/mod/fabric-api). It works on its own and inside
+   [Fabulously Optimized](https://modrinth.com/modpack/fabulously-optimized).
+
+3. Start Minecraft and press <kbd>F12</kbd>.
+
+It is a client-side Fabric mod for Minecraft 26.2 and 26.3 (Java 25), tested on Linux. The mod talks to the Force
+you installed: nothing is sent anywhere else.
+
+## What it does
+
+- **The whole cockpit on F12.** The same Force a terminal runs: its sidebar, menus, dialogs, hosts and Chuck, with
+  the same keys. It is drawn by the mod with crisp text on glass instead of terminal blocks, and the game keeps
+  running behind it. F12 hides it and brings it back at once, just as you left it.
+- **Who needs you, while you play.** A small list on the game screen shows the sessions with something going on:
+  needs you, working, your turn, unread. They are grouped by machine, in Force's colours.
+- **A toast when it's your turn.** When a session asks for permission, finishes or stops, a toast tells you which
+  one. A session you are not looking at stays unread, even if it's the one selected in the hidden cockpit.
+- **Looks like your terminal.** Box lines that join up, Force's icons, and emoji in colour, from your system's emoji
+  font or the Noto Color Emoji the mod brings.
+- **Yours to arrange.** How solid the glass is, the padding, the blur, the text size, and where the list sits. Every
+  key can be a combination, set in Minecraft's own Controls.
+
+<p align="center">
+  <img src=".github/assets/list.webp" alt="The game screen with Force's list in the corner: one session, web, working" width="49%">
+  <img src=".github/assets/settings.webp" alt="The mod's settings: background, padding, blur and text size for Force's view; background, position and length for the session list; toasts" width="49%">
+</p>
+
+## Keys
 
 | Key | |
 |---|---|
-| `F12` | show / hide Force: the whole app, full screen. Every other key goes to Force, Esc and Ctrl+Space included; Ctrl+Shift+V pastes |
-| `F10` | the settings |
-| (unbound) | show / hide the session list on the game screen (it shows from the start; only the sessions with something going on: needs you, working, your turn, unread, host by host) |
-| (unbound) | jump to the next session that needs you, in the session view |
-| (unbound) | the session view: the native list and one session's terminal (Ctrl+Shift+↑/↓ switch) |
+| <kbd>F12</kbd> | Show or hide Force. While it shows, every other key goes to Force, <kbd>Esc</kbd> and <kbd>Ctrl</kbd>+<kbd>Space</kbd> included; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> pastes |
+| <kbd>F10</kbd> | The settings |
+| (not bound) | Show or hide the session list on the game screen (it shows from the start) |
+| (not bound) | Jump to the next session that needs you |
+| (not bound) | The session view: a native list and one session's terminal |
 
-Keys are set in Options → Controls → Key Binds → Force, and each can be a combination: hold Ctrl, Alt or Shift while
-pressing the key (Ctrl + F12). A combination fires only with exactly its modifiers, so F12 and Ctrl + F12 can do two
-things. If the show / hide key is unbound, Esc hides Force's view, so it can always be left.
+Change them in Options → Controls → Key Binds → Force. A key can be a combination: hold <kbd>Ctrl</kbd>,
+<kbd>Alt</kbd> or <kbd>Shift</kbd> while you press it. A combination works only with exactly those keys held, so
+<kbd>F12</kbd> and <kbd>Ctrl</kbd>+<kbd>F12</kbd> can do different things. If you unbind the show / hide key,
+<kbd>Esc</kbd> hides Force instead, so you can always get out.
 
-The mouse works where Force asks for it: its sidebar cards, header and menus are clickable, the wheel scrolls. The
-game keeps running. The app starts hidden as soon as Force is connected and stays running: showing it is instant, and
-it is as you left it (its host, its session). Hidden, Force does not count the session it shows as viewed, so you
-still get its toasts while you play.
+The mouse works where Force asks for it: click its session cards, header and menus, and scroll with the wheel.
 
-Emoji are drawn in colour, as a terminal draws them: from the system's emoji font (so they look as in your
-terminal), else from the Noto Color Emoji the mod brings.
+## Settings
 
-### Settings
-
-Mods → Force → Configure (with [Mod Menu](https://modrinth.com/mod/modmenu), which Fabulously Optimized ships), or
-`F10`. Changes show at once:
+Open them with <kbd>F10</kbd>, or in Mods → Force → Configure (with [Mod Menu](https://modrinth.com/mod/modmenu),
+which Fabulously Optimized ships). Changes show at once.
 
 | Setting | Default | |
 |---|---|---|
-| Force's view: background | 100% | how solid the glass behind Force is (0% shows the game) |
-| Force's view: padding | 0 px | space around it, in GUI pixels (0: edge to edge) |
+| Force's view: background | 100% | how solid the glass behind Force is; at 0% the game shows through |
+| Force's view: padding | 0 px | space around it, in GUI pixels; at 0 it runs edge to edge |
 | Force's view: blur the game | on | |
 | Force's view: text size | 100% | on top of Minecraft's GUI scale |
 | Session list: background | 75% | |
@@ -60,90 +99,20 @@ Mods → Force → Configure (with [Mod Menu](https://modrinth.com/mod/modmenu),
 | Session list: most sessions | 8 | |
 | Session list: show at start | on | |
 | Toasts | on | when a session needs you, finishes or stops |
-| Key binds… | | opens Controls → Key Binds |
 
-They are kept in `config/force_mc.json`, with a few more for development:
+They are kept in `config/force_mc.json`, with a few more: `command` (how to start Force's frontend API, default
+`["~/.local/bin/force", "api"]`), and fixed text sizes in screen pixels (`terminalFontPx`, `uiFontPx`, `hudFontPx`;
+`0` follows the GUI scale).
 
-| Key | Default | |
-|---|---|---|
-| `command` | `["~/.local/bin/force", "api"]` | how to start Force's frontend API |
-| `terminalFontPx`, `uiFontPx`, `hudFontPx` | `0` | text sizes in screen pixels (12–48) for the console's terminal, its list, the game-screen list; `0` follows Minecraft's GUI scale (so a high-DPI display gets larger text) |
-| `keyModifiers` | `{}` | the modifiers of each key combination (the key itself is in `options.txt`) |
+## Contributing
 
-## Versions
-
-The mod follows the newest release (not beta) of Fabulously Optimized:
-
-| | |
-|---|---|
-| Fabulously Optimized | 14.1.2 |
-| Minecraft | 26.2 |
-| Fabric Loader | 0.20.1 |
-| Fabric API | 0.161.0+26.2 |
-| Java | 25 |
-
-It also builds for Minecraft 26.3 (Fabulously Optimized 15 beta) from the same code:
-`./gradlew build -Pminecraft_version=26.3 -Pfabric_api_version=0.166.2+26.3 -Pversion=0.1.0+26.3`. Minecraft 26.3
-moved its input from GLFW to SDL (other key codes and modifier bits), so the keys go through `KeyTable`, built from
-Minecraft's own `InputConstants`.
-
-## Architecture
-
-Built so the UI, the gestures and the terminal technology can change one at a time.
-
-```
-src/main/java/cc/useforce/mc/core/      plain Java, no Minecraft (unit-tested)
-  ApiConnection, Supervisor             `force api` over stdio: requests, events, restart with backoff
-  ForceModel                            what Force said: hosts, sessions, attention, notices (Force decides)
-  Selection                             which session is picked: the UI's state, never Force's
-  AppTerminal, Vt, VtInput              the whole app (SPEC §54 vt mode): Force runs its ui in a pty, Vt emulates
-                                        the terminal (what tmux sends), VtInput encodes keys, pastes and the mouse
-  TerminalBackend, CellsBackend         one session's view (cells mode): the native session view
-  TerminalBuffer                        the screen both fill: the only thing the view draws
-  Intent, Controller                    what the player wants, from any gesture; carried out in one place
-  Keys                                  GLFW keys to tmux key names
-src/client/java/cc/useforce/mc/         Minecraft
-  ui/Theme, Panel                       Force's colours and the glass panels
-  ui/SessionList, ui/TerminalView       widgets: draw a model / a buffer, answer "what is here"
-  ui/GlyphAtlas, ui/BoxDraw             the text renderer: FreeType glyphs at exact pixel size (colour emoji from
-                                        the system's emoji font), box lines
-  Hud, AppScreen, ConsoleScreen         layouts: the game screen; the whole app; the session view
-  Config, SettingsScreen, ModMenuEntry  the settings: the file, the screen (Minecraft's option widgets), Mod Menu
-  ComboKey, mixin/KeyBindsScreenMixin   key bindings that can be combinations, set in Controls → Key Binds
-  ForceClient                           wiring: key bindings, toasts, the layouts, the controller
-src/gametest/                           the real client, headless: a world, the console, typing, switching, emoji,
-                                        the settings, a key combination
-```
-
-- A new gesture (a click, a key, the wheel) maps to an existing `Intent`; a new behaviour is a new `Intent`.
-- Moving the list (into the HUD, the console, or a side panel) is a layout change; the widgets do not care.
-- The app view and the session view fill the same `TerminalBuffer`, so the renderer is shared.
-- Next: native panels (sidebar, menus, dialogs) on top of the app, with Force publishing its UI logic for frontends.
-
-## Develop
-
-```sh
-./gradlew build                 # the mod and the unit tests (Java 25)
-scripts/gametest.sh             # the client game tests in Docker, against a demo Force from ../force
-./gradlew runClient             # a dev client; FORCE_MC_COMMAND="/path/to/force api" points it at another Force
-```
-
-`scripts/gametest.sh` needs Docker and a Force checkout (`FORCE_REPO`, default `../force`): it builds a Force release
-from it, installs that in the container with three shell sessions and its daemon, and runs the client against it.
-Screenshots of each step are in `build/run/clientGameTest/screenshots/`.
-
-## Text
-
-The console draws its own text (`ui/GlyphAtlas`): FreeType rasterises each glyph at exactly the pixel size it is
-drawn, into texture pages, and everything is drawn in screen pixels rather than Minecraft's scaled GUI units, so text
-is crisp at any GUI scale and sizes follow the GUI scale. It does not go through Minecraft's font system, which loads
-TTF fonts on several threads at once (FreeType's TrueType hinting interpreter crashes under that with many sizes); one
-FreeType library of the mod's own is used by the render thread only, with light auto-hinting. JetBrains Mono (with
-its real bold) first, DejaVu Sans Mono and DejaVu Sans for what it lacks; box-drawing and block characters are drawn
-as lines and blocks that meet across cells, as terminals do.
+Bug reports and ideas are welcome as [issues](https://github.com/zalandemeter/force-minecraft/issues). How the mod
+is built, tested and released, and how its code is laid out: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licence
 
-MIT. Fonts in `assets/force_mc/fonts/`: JetBrains Mono (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans
-(Bitstream Vera licence), a subset of Nerd Fonts Symbols (MIT) with Force's icons, and Noto Color Emoji (SIL Open
-Font License; googlefonts/noto-emoji v2026-09-24-unicode18_0).
+[MIT](LICENSE). The fonts it brings keep their own licences (in `src/client/resources/assets/force_mc/fonts/`):
+JetBrains Mono and Noto Color Emoji (SIL Open Font License), DejaVu Sans Mono and DejaVu Sans (Bitstream Vera
+licence), and a subset of Nerd Fonts Symbols (MIT) with Force's icons.
+
+Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.
