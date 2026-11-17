@@ -52,7 +52,7 @@ public final class ConsoleScreen extends Screen implements Blur {
     private void layout(Canvas c) {
         px = mod.config().uiPx(c.scale);
         tpx = mod.config().terminalPx(c.scale);
-        int m = mod.config().paddingPx(c.scale) + px / 2;
+        int m = mod.config().paddingPx(c.scale);
         lw = Math.max(px * 14, Math.min(px * 22, c.width() / 4));
         lx = m;
         ly = m;
