@@ -1,6 +1,7 @@
 package cc.useforce.mc;
 
 import cc.useforce.mc.core.ForceModel;
+import cc.useforce.mc.core.Os;
 import cc.useforce.mc.ui.Canvas;
 import cc.useforce.mc.ui.Panel;
 import cc.useforce.mc.ui.SessionList;
@@ -77,7 +78,7 @@ final class Hud {
         return switch (model.status()) {
             case CONNECTED -> "no sessions";
             case CONNECTING -> "connecting…";
-            case NOT_FOUND -> "Force not found";
+            case NOT_FOUND -> Os.CURRENT == Os.Kind.WINDOWS ? "Force not found in WSL" : "Force not found";
             case DISCONNECTED -> "not connected";
         };
     }

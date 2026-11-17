@@ -50,9 +50,10 @@ public final class Supervisor {
         long backoff = 2000;
         while (!stopped) {
             Object done = new Object();
+            ApiConnection.Transport t = null;
             try {
                 model.setStatus(ForceModel.Status.CONNECTING, null);
-                ApiConnection.Transport t = factory.open(command);
+                t = factory.open(command);
                 ApiConnection c = new ApiConnection(t, onEvent, () -> {
                     synchronized (done) {
                         done.notifyAll();
@@ -72,7 +73,9 @@ public final class Supervisor {
                 return;
             } catch (Exception e) {
                 Throwable cause = e.getCause() != null ? e.getCause() : e;
-                model.setStatus(ForceModel.Status.DISCONNECTED, cause.getMessage());
+                if (t != null && t.exitCode() == 127)
+                    model.setStatus(ForceModel.Status.NOT_FOUND, String.join(" ", command));
+                else model.setStatus(ForceModel.Status.DISCONNECTED, cause.getMessage());
                 ApiConnection c = conn;
                 if (c != null) c.close();
             }

@@ -1,6 +1,8 @@
 package cc.useforce.mc;
 
+import cc.useforce.mc.core.Keys;
 import cc.useforce.mc.core.Links;
+import cc.useforce.mc.core.Os;
 import cc.useforce.mc.core.TerminalBuffer;
 import cc.useforce.mc.ui.Canvas;
 import cc.useforce.mc.ui.GlyphAtlas;
@@ -9,9 +11,9 @@ import cc.useforce.mc.ui.Theme;
 
 /**
  * Web links in a terminal view, as a terminal shows them: the one under the mouse is underlined (every line of it,
- * when it wraps) with how to open it beside the mouse, and Ctrl+click opens it. A link the program named itself
- * (OSC 8) shows its address in the hint, since its text may say something else. Both views use it: Force's app and
- * the session view.
+ * when it wraps) with how to open it beside the mouse, and Ctrl+click (Cmd+click on macOS) opens it. A link the
+ * program named itself (OSC 8) shows its address in the hint, since its text may say something else. Both views use
+ * it: Force's app and the session view.
  */
 final class LinkHover {
     /** Where the grid is drawn, in screen pixels: its top-left corner and one cell (scaled, when it was fitted). */
@@ -41,7 +43,7 @@ final class LinkHover {
             int x0 = g.x() + Math.round(sp.start() * g.cw()), x1 = g.x() + Math.round(sp.end() * g.cw());
             c.fill(x0, g.y() + Math.round(sp.row() * g.ch()) + base, x1 - x0, thick, Theme.BLUE);
         }
-        String hint = "Ctrl+click to open";
+        String hint = Os.CURRENT == Os.Kind.MAC ? "Cmd+click to open" : "Ctrl+click to open";
         int hpx = Math.max(12, px * 3 / 4);
         if (l.marked()) hint = c.clip(hint + "  " + l.url(), c.width() / 2, hpx);
         int hw = c.textWidth(hint, hpx, false) + hpx, hh = Theme.line(hpx) + hpx / 3;
@@ -49,6 +51,11 @@ final class LinkHover {
         Panel.draw(c, hx, hy, hw, hh);
         c.text(hint, hx + hpx / 2, hy + hpx / 6, hpx, Theme.SOFT, false);
         return l;
+    }
+
+    /** Whether the modifiers at a click open a link: Ctrl everywhere, and Cmd on macOS. */
+    static boolean opens(Keys keys, int mods) {
+        return keys.ctrl(mods) || Os.CURRENT == Os.Kind.MAC && keys.cmd(mods);
     }
 
     /** Ctrl+click at a point (screen pixels): opens the link there; true when there was one. */

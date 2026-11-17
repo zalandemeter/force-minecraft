@@ -44,8 +44,10 @@
 
 3. Start Minecraft and press <kbd>F12</kbd>.
 
-It is a client-side Fabric mod for Minecraft 26.2 and 26.3 (Java 25), tested on Linux. The mod talks to the Force
-you installed: nothing is sent anywhere else.
+It is a client-side Fabric mod for Minecraft 26.2 and 26.3 (Java 25), for Linux, macOS and Windows. On Windows,
+Force runs inside [WSL](https://learn.microsoft.com/windows/wsl/install): install it there (step 1, in the WSL
+terminal) and the mod starts it through `wsl.exe`. The mod talks to the Force you installed: nothing is sent anywhere
+else.
 
 ## What it does
 
@@ -70,7 +72,7 @@ you installed: nothing is sent anywhere else.
 
 | Key | |
 |---|---|
-| <kbd>F12</kbd> | Show or hide Force. While it shows, every other key goes to Force, <kbd>Esc</kbd> and <kbd>Ctrl</kbd>+<kbd>Space</kbd> included; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> pastes |
+| <kbd>F12</kbd> | Show or hide Force. While it shows, every other key goes to Force, <kbd>Esc</kbd> and <kbd>Ctrl</kbd>+<kbd>Space</kbd> included; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> pastes (<kbd>Cmd</kbd>+<kbd>V</kbd> on macOS) |
 | <kbd>F10</kbd> | The settings |
 | (not bound) | Show or hide the session list on the game screen (it shows from the start) |
 | (not bound) | Jump to the next session that needs you |
@@ -82,7 +84,8 @@ Change them in Options → Controls → Key Binds → Force. A key can be a comb
 <kbd>Esc</kbd> hides Force instead, so you can always get out.
 
 The mouse works where Force asks for it: click its session cards, header and menus, and scroll with the wheel.
-Links open in your browser with <kbd>Ctrl</kbd>+click, as in a terminal, also when they wrap onto the next line.
+Links open in your browser with <kbd>Ctrl</kbd>+click (<kbd>Cmd</kbd>+click on macOS), as in a terminal, also
+when they wrap onto the next line.
 
 ## Settings
 

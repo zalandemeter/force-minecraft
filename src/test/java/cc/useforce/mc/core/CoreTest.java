@@ -118,7 +118,7 @@ class CoreTest {
         named.put(81, "Down");
         var chars = new java.util.HashMap<Integer, Character>();
         chars.put(6, 'c');
-        Keys k = new Keys(new Keys.Table(named, chars, 3, 192, 768));
+        Keys k = new Keys(new Keys.Table(named, chars, 3, 192, 768, 3072));
         assertEquals("C-c", k.name(6, 0x40), "left Ctrl");
         assertEquals("C-c", k.name(6, 0x80), "right Ctrl");
         assertEquals("M-c", k.name(6, 0x200));

@@ -17,7 +17,8 @@ force
 ```
 
 Then add this mod with [Fabric API](https://modrinth.com/mod/fabric-api), start Minecraft and press **F12**. The mod
-talks only to the Force on your computer: nothing is sent anywhere else. Tested on Linux.
+talks only to the Force on your computer: nothing is sent anywhere else. On Windows, install Force inside WSL; the mod
+starts it there.
 
 ## What it does
 
@@ -29,7 +30,7 @@ talks only to the Force on your computer: nothing is sent anywhere else. Tested 
 - **A toast when it's your turn.** When a session asks for permission, finishes or stops, a toast tells you which
   one.
 - **Looks like your terminal.** Box lines that join up, Force's icons, and emoji in colour. Links open in your
-  browser with Ctrl+click.
+  browser with Ctrl+click (Cmd+click on macOS).
 - **Yours to arrange.** Glass opacity, padding, blur, text size, and where the list sits: F10, or Mods → Force →
   Configure with Mod Menu. Every key can be a combination, set in Controls → Key Binds → Force.
 

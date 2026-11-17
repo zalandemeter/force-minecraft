@@ -1,5 +1,6 @@
 # Every push and pull request: the mod and its unit tests, and the real client (headless, in Docker) against a Force
-# built from Force's main, for each Minecraft version the mod ships for.
+# built from Force's main, for each Minecraft version the mod ships for; on Windows and macOS, the mod and its unit
+# tests.
 name: build
 on: [pull_request, push]
 
@@ -31,6 +32,23 @@ jobs:
         with:
           name: jar-${{ matrix.mc.minecraft }}
           path: build/libs/
+
+  portable:
+    name: build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - name: build and unit tests
+        shell: bash
+        run: ./gradlew build -Pminecraft_version=26.3 -Pfabric_api_version=0.166.2+26.3
 
   gametest:
     name: gametest (${{ matrix.mc.minecraft }})
