@@ -2,7 +2,8 @@
 # (nothing in the repository holds it). The workflow checks the commit (on main, newer than every release, its CI
 # passed), builds one jar per Minecraft version (force-minecraft-X.Y.Z+<minecraft>.jar) with its .sha256, attests
 # their provenance, and publishes a GitHub Release whose notes list the merged pull requests. With a MODRINTH_TOKEN
-# secret and a MODRINTH_PROJECT_ID variable it uploads the jars to Modrinth too, one version per Minecraft version.
+# secret and a MODRINTH_PROJECT_ID variable it uploads the jars to Modrinth too, one version per Minecraft version,
+# and sets the project's content disclosures from .github/modrinth-disclosures.json.
 #
 # A pull request that changes this file runs the same builds as 0.0.0 and publishes nothing.
 name: Release
@@ -158,3 +159,25 @@ jobs:
               -H "User-Agent: $GITHUB_REPOSITORY (release workflow)" \
               -F "data=<data.json" -F "file=@$jar;type=application/java-archive" | jq -r '"uploaded \(.version_number): \(.id)"'
           done
+      - uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/modrinth-disclosures.json
+          sparse-checkout-cone-mode: false
+          path: src
+      - name: Content disclosures
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+        run: |
+          # Modrinth takes disclosures only once the project has versions: set after the upload, on every release
+          if [[ -z "$MODRINTH_TOKEN" || -z "$MODRINTH_PROJECT_ID" ]]; then
+            echo "::notice::no MODRINTH_TOKEN secret or MODRINTH_PROJECT_ID variable: disclosures not set"
+            exit 0
+          fi
+          jq -e '.set | length > 0' src/.github/modrinth-disclosures.json >/dev/null
+          curl -fsS -X PATCH "https://api.modrinth.com/v3/project/$MODRINTH_PROJECT_ID/disclosures" \
+            -H "Authorization: $MODRINTH_TOKEN" \
+            -H "User-Agent: $GITHUB_REPOSITORY (release workflow)" \
+            -H "Content-Type: application/json" \
+            --data-binary @src/.github/modrinth-disclosures.json
+          echo "disclosures set: $(jq -r '[.set[].type] | join(", ")' src/.github/modrinth-disclosures.json)"
