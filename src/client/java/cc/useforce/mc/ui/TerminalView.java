@@ -10,6 +10,9 @@ import cc.useforce.mc.core.TerminalBuffer;
 public final class TerminalView {
     public record Grid(int cols, int rows) {}
 
+    /** How solid the cells' own backgrounds are on glass (1: as the program paints them). */
+    public double cellOpacity = 1;
+
     /** Glyphs Claude Code draws that no bundled font has: stand-ins of the same look. */
     static String substitute(int cp) {
         return switch (cp) {
@@ -49,7 +52,7 @@ public final class TerminalView {
         for (int row = 0; row < s.rows() && row < s.lines().size(); row++) {
             int col = 0, ry = row * ch;
             for (TerminalBuffer.Run r : s.lines().get(row)) {
-                int len = r.text().codePointCount(0, r.text().length());
+                int len = cells(r.text());
                 int fg = r.fg() != null ? 0xFF000000 | r.fg() : Theme.TERM_FG;
                 Integer bg = r.bg();
                 if (r.reverse()) {
@@ -59,7 +62,7 @@ public final class TerminalView {
                 }
                 if (r.dim()) fg = (fg & 0xFF000000) | ((fg >> 1) & 0x7F7F7F);
                 if (bg != null && !(glass && (bg == 0x262626 || bg == 0x212121)))
-                    c.fill(col * cw, ry, len * cw, ch, 0xFF000000 | bg);
+                    c.fill(col * cw, ry, len * cw, ch, glass ? Theme.withAlpha(bg, cellOpacity) : 0xFF000000 | bg);
                 drawRun(c, r.text(), col, ry, cw, px, fg, r.bold());
                 if (r.underline()) c.fill(col * cw, ry + GlyphAtlas.get().metrics(px).baseline() + Math.max(1, px / 12),
                         len * cw, Math.max(1, px / 14), fg);
@@ -71,6 +74,13 @@ public final class TerminalView {
         pose.popMatrix();
     }
 
+    /** The cells `text` takes: VS16 (an emoji's marker) rides on the character before it. */
+    static int cells(String text) {
+        int n = text.codePointCount(0, text.length());
+        for (int i = text.indexOf('\uFE0F'); i >= 0; i = text.indexOf('\uFE0F', i + 1)) n--;
+        return n;
+    }
+
     /** Each character in its own cell; box-drawing and block characters as exact lines and blocks. */
     private static void drawRun(Canvas c, String text, int col, int y, int cw, int px, int fg, boolean bold) {
         StringBuilder plain = new StringBuilder();
@@ -78,14 +88,18 @@ public final class TerminalView {
         while (i < text.length()) {
             int cp = text.codePointAt(i);
             i += Character.charCount(cp);
+            boolean emoji = i < text.length() && text.charAt(i) == '\uFE0F';
+            if (emoji) i++;
             boolean wide = i < text.length() && text.charAt(i) == '\u0000';
+            if (cp == 0xFE0F) continue;                 // a stray one: no cell
+            String glyph = new String(Character.toChars(cp)) + (emoji ? "\uFE0F" : "");
             if (cp == 0) {
                 // the second cell of a wide character: drawn with the first
                 flush(c, plain, start, y, cw, px, fg, bold);
                 start = cc + 1;
             } else if (wide) {
                 flush(c, plain, start, y, cw, px, fg, bold);
-                GlyphAtlas.get().draw(c, new String(Character.toChars(cp)), cc * cw, y, px, bold, fg, 2 * cw);
+                GlyphAtlas.get().draw(c, glyph, cc * cw, y, px, bold, fg, 2 * cw);
                 start = cc + 1;
             } else if (BoxDraw.draw(c, cp, cc * cw, y, cw, cellH(px), px, fg)) {
                 flush(c, plain, start, y, cw, px, fg, bold);
@@ -93,8 +107,8 @@ public final class TerminalView {
             } else {
                 if (plain.isEmpty()) start = cc;
                 String sub = substitute(cp);
-                if (sub != null) plain.append(sub);
-                else plain.appendCodePoint(cp);
+                if (sub != null && !emoji) plain.append(sub);
+                else plain.append(glyph);
             }
             cc++;
         }
