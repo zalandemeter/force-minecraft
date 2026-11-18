@@ -54,6 +54,7 @@ per Minecraft version (`force-minecraft-X.Y.Z+26.2.jar`, `…+26.3.jar`) with th
 Release whose notes list the merged pull requests. When the repository has a `MODRINTH_TOKEN` secret and a
 `MODRINTH_PROJECT_ID` variable, it uploads both jars to Modrinth too, as versions of the same number, and sets the project's content disclosures
 from `.github/modrinth-disclosures.json`.
+A release that failed after uploading can be finished with "Re-run failed jobs": versions already on Modrinth are skipped.
 
 ## Architecture
 
