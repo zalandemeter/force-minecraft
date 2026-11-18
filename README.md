@@ -98,7 +98,7 @@ which Fabulously Optimized ships). Changes show at once.
 | Force's view: padding | 10 px | space around it, in GUI pixels; at 0 it runs edge to edge |
 | Force's view: blur the game | on | |
 | Force's view: text size | 100% | on top of Minecraft's GUI scale |
-| Session list: background | 75% | |
+| Session list: background | 80% | |
 | Session list: position | right | right, left, or a corner |
 | Session list: most sessions | 8 | |
 | Session list: show at start | on | |
