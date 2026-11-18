@@ -33,7 +33,7 @@ public final class Config {
 
     /** How see-through the backgrounds are, 0 (clear) to 1 (solid): Force's view (F12) and the game-screen list. */
     public double terminalOpacity = 0.8;
-    public double sidebarOpacity = 0.75;
+    public double sidebarOpacity = 0.8;
     /** Blur the game behind Force's view. */
     public boolean blur = true;
     /** Where the game-screen list sits: right, left, top-right, top-left, bottom-right, bottom-left. */
@@ -97,7 +97,7 @@ public final class Config {
         if (c.keyModifiers == null) c.keyModifiers = new java.util.HashMap<>();
         if (c.sidebarPosition == null || !POSITIONS.contains(c.sidebarPosition)) c.sidebarPosition = "right";
         c.terminalOpacity = clamp01(c.terminalOpacity, 0.8);
-        c.sidebarOpacity = clamp01(c.sidebarOpacity, 0.75);
+        c.sidebarOpacity = clamp01(c.sidebarOpacity, 0.8);
         if (!(c.textScale > 0) || !Double.isFinite(c.textScale)) c.textScale = 1.0;
         if (!broken) c.save();                      // a file from an older version gets the new settings, with defaults
         return c;
