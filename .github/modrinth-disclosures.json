@@ -3,7 +3,7 @@
     {
       "type": "ai_content",
       "uses": ["code", "text"],
-      "note": "Primarily human-driven development with AI-assisted tools: a person designed and directed the work and tested, reviewed and revised all of it, with AI coding tools helping to write the code and the text."
+      "note": "Primarily human-driven development with AI-assisted tools. The developer designed the mod and directed, reviewed, tested and revised every change; AI coding assistants were used as tools along the way, for parts of the code and text."
     },
     {
       "type": "system_interactions",
