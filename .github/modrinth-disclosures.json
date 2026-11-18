@@ -3,7 +3,7 @@
     {
       "type": "ai_content",
       "uses": ["code", "text"],
-      "note": "The code and the text were written with the help of AI coding agents. The work was human-driven throughout: a person directed it and evaluated, tested, reviewed and revised all of it."
+      "note": "Primarily human-driven development with AI-assisted tools. The developer designed the mod and directed, reviewed, tested and revised every change; AI coding assistants were used as tools along the way, for parts of the code and text."
     },
     {
       "type": "system_interactions",
