@@ -24,6 +24,9 @@ jobs:
         with:
           java-version: '25'
           distribution: 'microsoft'
+      # Gradle's caches between runs: a build fetches its plugins and libraries only when they change, so a slow or
+      # throttled Maven Central no longer fails it
+      - uses: gradle/actions/setup-gradle@v6
       - name: build
         run: |
           chmod +x ./gradlew
@@ -46,6 +49,9 @@ jobs:
         with:
           java-version: '25'
           distribution: 'microsoft'
+      # Gradle's caches between runs: a build fetches its plugins and libraries only when they change, so a slow or
+      # throttled Maven Central no longer fails it
+      - uses: gradle/actions/setup-gradle@v6
       - name: build and unit tests
         shell: bash
         run: ./gradlew build -Pminecraft_version=26.3 -Pfabric_api_version=0.166.2+26.3
