@@ -3,7 +3,8 @@
 # passed), builds one jar per Minecraft version (force-minecraft-X.Y.Z+<minecraft>.jar) with its .sha256, attests
 # their provenance, and publishes a GitHub Release whose notes list the merged pull requests. With a MODRINTH_TOKEN
 # secret and a MODRINTH_PROJECT_ID variable it uploads the jars to Modrinth too, one version per Minecraft version,
-# and sets the project's content disclosures from .github/modrinth-disclosures.json.
+# and sets the project's content disclosures from .github/modrinth-disclosures.json. Versions already on Modrinth are
+# skipped, so a release that failed after uploading is finished with "Re-run failed jobs".
 #
 # A pull request that changes this file runs the same builds as 0.0.0 and publishes nothing.
 name: Release
@@ -142,9 +143,19 @@ jobs:
             exit 0
           fi
           notes="$(gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" --json body -q .body)"
+          # the versions already on Modrinth (with the token: an unreviewed project is 404 without it), so a re-run
+          # of a release that failed after uploading skips them; a failed listing fails here and uploads nothing
+          curl -fsS "https://api.modrinth.com/v2/project/$MODRINTH_PROJECT_ID/version" \
+            -H "Authorization: $MODRINTH_TOKEN" \
+            -H "User-Agent: $GITHUB_REPOSITORY (release workflow)" -o existing.json
+          jq -e 'type == "array"' existing.json >/dev/null
           for jar in dist/*.jar; do
             name="$(basename "$jar")"
             mc="${name##*+}"; mc="${mc%.jar}"
+            if jq -e --arg number "${VERSION#v}+$mc" 'any(.[]; .version_number == $number)' existing.json >/dev/null; then
+              echo "${VERSION#v}+$mc already on Modrinth, skipping"
+              continue
+            fi
             jq -n --arg project "$MODRINTH_PROJECT_ID" --arg number "${VERSION#v}+$mc" \
               --arg name "Force ${VERSION#v} for Minecraft $mc" --arg mc "$mc" --arg notes "$notes" '{
                 project_id: $project, version_number: $number, name: $name, changelog: $notes,
