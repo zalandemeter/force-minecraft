@@ -4,6 +4,8 @@ pluginManagement {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
+		// Google's mirror of Maven Central first: Central answers busy CI runners with 429 Too Many Requests
+		maven { url = 'https://maven-central.storage-download.googleapis.com/maven2/' }
 		mavenCentral()
 		gradlePluginPortal()
 	}
